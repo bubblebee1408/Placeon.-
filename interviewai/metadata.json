@@ -1,5 +1,0 @@
-{
-  "name": "InterviewAI",
-  "description": "A high-fidelity AI-powered interview preparation platform featuring live sessions, transcripts, and real-time feedback.",
-  "requestFramePermissions": ["camera", "microphone"]
-}
