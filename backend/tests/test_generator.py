@@ -19,6 +19,13 @@ def test_generator_returns_valid_json_structure(monkeypatch) -> None:
 
     result = asyncio.run(
         generate_question(
+            plan={
+                "action": "deep_dive",
+                "target_skill": "caching",
+                "reason": "Candidate explained basics and can handle advanced trade-offs.",
+                "difficulty": "hard",
+                "tone": "challenging",
+            },
             context={
                 "candidate": {
                     "name": "Sam",
@@ -29,14 +36,15 @@ def test_generator_returns_valid_json_structure(monkeypatch) -> None:
                 },
                 "job": {
                     "role": "Backend Engineer",
+                    "company": "PlacedOn",
                     "level": "mid",
                     "required_skills": ["caching", "api design"],
                     "preferred_skills": ["distributed systems"],
                 },
-                "focus_skill": "caching",
+                "last_question": "What is TTL?",
+                "last_answer": "TTL evicts stale entries.",
+                "previous_context": [{"question": "What is TTL?"}],
             },
-            strategy="system_design",
-            previous_qna=[{"question": "What is TTL?"}],
         )
     )
 
@@ -55,6 +63,13 @@ def test_generator_raises_on_invalid_ollama_payload(monkeypatch) -> None:
     try:
         asyncio.run(
             generate_question(
+                plan={
+                    "action": "follow_up",
+                    "target_skill": "api design",
+                    "reason": "Needs clarity on fundamentals.",
+                    "difficulty": "easy",
+                    "tone": "supportive",
+                },
                 context={
                     "candidate": {
                         "name": "Sam",
@@ -65,14 +80,15 @@ def test_generator_raises_on_invalid_ollama_payload(monkeypatch) -> None:
                     },
                     "job": {
                         "role": "Backend Engineer",
+                        "company": "PlacedOn",
                         "level": "junior",
                         "required_skills": ["api design"],
                         "preferred_skills": [],
                     },
-                    "focus_skill": "api design",
+                    "last_question": "Tell me about REST.",
+                    "last_answer": "Not sure.",
+                    "previous_context": [],
                 },
-                strategy="conceptual",
-                previous_qna=[],
             )
         )
         raise AssertionError("Expected ValueError for invalid JSON")

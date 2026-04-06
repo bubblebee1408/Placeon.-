@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -17,6 +17,17 @@
   body {
     @apply bg-background text-text-main font-sans antialiased;
   }
+}
+
+#root {
+  height: 100vh;
+}
+
+.bg-app-shell {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(59, 130, 246, 0.09), transparent 35%),
+    radial-gradient(circle at 80% 90%, rgba(148, 163, 184, 0.12), transparent 40%),
+    #e8eef6;
 }
 
 .glass-panel {

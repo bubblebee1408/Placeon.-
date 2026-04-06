@@ -1,4 +1,4 @@
-from backend.schemas.generator_schema import CandidateProfile, GeneratorInput, JobProfile, QuestionOutput
+from backend.schemas.generator_schema import CandidateProfile, GeneratorInput, JobProfile, PlanOutput, QuestionOutput
 from backend.schemas.judge_schema import JudgeInput, JudgeOutput
 
 __all__ = [
@@ -7,5 +7,6 @@ __all__ = [
     "JudgeInput",
     "JudgeOutput",
     "JobProfile",
+    "PlanOutput",
     "QuestionOutput",
 ]

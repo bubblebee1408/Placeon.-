@@ -8,12 +8,12 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ currentView, onViewChange }: NavbarProps) => (
-  <header className="flex justify-between items-center w-full px-8 h-16 sticky top-0 z-50 glass-panel border-b border-slate-200/50">
-    <div className="flex items-center gap-8">
-      <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent tracking-tight">
-        InterviewAI
+  <header className="flex justify-between items-center w-full px-6 md:px-8 h-14 md:h-16 sticky top-0 z-50 bg-slate-50/90 border-b border-slate-200/80">
+    <div className="flex items-center gap-6 md:gap-8">
+      <span className="text-[28px] leading-none font-black tracking-tight text-[#2563eb]">
+        PlacedOn
       </span>
-      <nav className="hidden md:flex gap-8">
+      <nav className="hidden md:flex gap-6">
         {[
           { id: 'interview', label: 'Interview' },
           { id: 'ide', label: 'IDE' },
@@ -23,10 +23,10 @@ export const Navbar = ({ currentView, onViewChange }: NavbarProps) => (
             key={view.id}
             onClick={() => onViewChange(view.id as any)}
             className={cn(
-              "font-medium transition-all pb-1",
+              'text-[15px] transition-all pb-1',
               currentView === view.id 
-                ? "text-blue-600 border-b-2 border-blue-600 font-bold" 
-                : "text-slate-500 hover:text-blue-600"
+                ? 'text-[#1d4ed8] border-b-2 border-[#2563eb] font-semibold'
+                : 'text-slate-500 hover:text-[#2563eb]'
             )}
           >
             {view.label}
@@ -34,14 +34,14 @@ export const Navbar = ({ currentView, onViewChange }: NavbarProps) => (
         ))}
       </nav>
     </div>
-    <div className="flex items-center gap-4">
-      <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
-        <Settings size={20} />
+    <div className="flex items-center gap-3 md:gap-4">
+      <button className="p-2 text-slate-500 hover:bg-slate-200/70 rounded-full transition-all">
+        <Settings size={16} />
       </button>
-      <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all">
-        <HelpCircle size={20} />
+      <button className="p-2 text-slate-500 hover:bg-slate-200/70 rounded-full transition-all">
+        <HelpCircle size={16} />
       </button>
-      <button className="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-sm">
+      <button className="bg-[#2563eb] text-white px-5 py-2 rounded-full font-semibold hover:bg-[#1d4ed8] transition-all shadow-md shadow-blue-200 text-sm">
         End Interview
       </button>
       <div className="w-9 h-9 rounded-full bg-slate-200 overflow-hidden border border-slate-200 shadow-sm ml-2">

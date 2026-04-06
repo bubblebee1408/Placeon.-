@@ -13,17 +13,28 @@ class CandidateProfile(BaseModel):
 
 class JobProfile(BaseModel):
     role: str = Field(min_length=1)
+    company: str = Field(default="")
     level: Literal["intern", "junior", "mid", "senior"]
     required_skills: list[str] = Field(default_factory=list)
     preferred_skills: list[str] = Field(default_factory=list)
 
 
+class PlanOutput(BaseModel):
+    action: Literal["follow_up", "deep_dive", "new_topic", "simplify", "explore_project"]
+    target_skill: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    difficulty: Literal["easy", "medium", "hard"]
+    tone: Literal["supportive", "neutral", "challenging"]
+
+
 class GeneratorInput(BaseModel):
     candidate: CandidateProfile
     job: JobProfile
-    focus_skill: str = Field(min_length=1)
-    strategy: Literal["behavioral", "conceptual", "system_design", "deep_dive", "follow_up"]
+    plan: PlanOutput
+    last_question: str = ""
+    last_answer: str = ""
     previous_context: list[dict] = Field(default_factory=list)
+    interview_state: dict = Field(default_factory=dict)
 
 
 class QuestionOutput(BaseModel):

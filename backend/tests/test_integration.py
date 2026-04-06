@@ -34,6 +34,13 @@ def test_generate_then_evaluate_integration(monkeypatch) -> None:
 
     generated = asyncio.run(
         generate_question(
+            plan={
+                "action": "new_topic",
+                "target_skill": "api design",
+                "reason": "Candidate can move from intro depth to architecture framing.",
+                "difficulty": "medium",
+                "tone": "neutral",
+            },
             context={
                 "candidate": {
                     "name": "Taylor",
@@ -44,14 +51,15 @@ def test_generate_then_evaluate_integration(monkeypatch) -> None:
                 },
                 "job": {
                     "role": "Backend Engineer",
+                    "company": "PlacedOn",
                     "level": "mid",
                     "required_skills": ["api design", "databases"],
                     "preferred_skills": ["distributed systems"],
                 },
-                "focus_skill": "api design",
+                "last_question": "Tell me about a backend system you built.",
+                "last_answer": "I built a billing API with queues.",
+                "previous_context": [],
             },
-            strategy="system_design",
-            previous_qna=[],
         )
     )
     judged = asyncio.run(evaluate_answer(question=generated.question, answer="Use cursor-based pagination."))

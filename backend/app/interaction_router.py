@@ -19,7 +19,8 @@ if ROOT_DIR not in sys.path:
 from backend.llm.generator import generate_question
 from backend.llm.judge import evaluate_answer
 from backend.pipeline.context_builder import build_context
-from backend.pipeline.question_strategy import decide_question_type
+from backend.pipeline.conversation_orchestrator import generate_intro
+from backend.pipeline.planner import plan_next_step
 from backend.schemas.generator_schema import CandidateProfile, JobProfile
 
 from interaction_layer.communication.websocket_manager import WebSocketManager
@@ -88,6 +89,14 @@ def _pick_focus_skill(state: dict[str, Any], context: dict[str, Any]) -> str:
     return "backend fundamentals"
 
 
+def _controller_enforce_phase(state: dict[str, Any]) -> None:
+    if not state.get("intro_sent"):
+        state["phase"] = "intro"
+        return
+    if state.get("phase") == "intro":
+        state["phase"] = "technical"
+
+
 def _ensure_interview_state(session_id: str, candidate: CandidateProfile, job: JobProfile) -> dict[str, Any]:
     candidate_payload = candidate.model_dump()
     job_payload = job.model_dump()
@@ -104,7 +113,15 @@ def _ensure_interview_state(session_id: str, candidate: CandidateProfile, job: J
             "asked_questions": [],
             "covered_skills": [],
             "current_skill": str(initial_focus).strip().lower(),
+            "current_focus": str(initial_focus).strip().lower(),
             "round": 1,
+            "phase": "intro",
+            "history": [],
+            "intro_sent": False,
+            "last_question": "",
+            "last_answer": "",
+            "last_evaluation": None,
+            "last_plan": None,
             "candidate": candidate_payload,
             "job": job_payload,
             "context": context,
@@ -116,6 +133,8 @@ def _ensure_interview_state(session_id: str, candidate: CandidateProfile, job: J
     state["job"] = job_payload
     state["context"] = context
     state["current_skill"] = _pick_focus_skill(state, context)
+    state["current_focus"] = state["current_skill"]
+    _controller_enforce_phase(state)
     return state
 
 
@@ -168,26 +187,76 @@ async def process_turn(payload: TurnPayload, request: Request) -> BackendTurnRes
 @router.post("/generate-question")
 async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
     state = _ensure_interview_state(payload.session_id, payload.candidate, payload.job)
-    strategy = decide_question_type(state)
+
+    if not state.get("intro_sent"):
+        intro_question = await generate_intro(payload.candidate, payload.job)
+        state["intro_sent"] = True
+        state["last_question"] = intro_question
+        state["history"].append({"role": "ai", "text": intro_question})
+
+        asked_entry = {
+            "question": intro_question,
+            "skill": "introduction",
+            "difficulty": "easy",
+            "type": "behavioral",
+            "strategy": "intro",
+            "round": state["round"],
+        }
+        state["asked_questions"].append(asked_entry)
+        state["round"] += 1
+        _controller_enforce_phase(state)
+        return {
+            "question": intro_question,
+            "skill": "introduction",
+            "difficulty": "easy",
+            "type": "behavioral",
+            "strategy": "intro",
+            "round": asked_entry["round"],
+            "tags": ["introduction"],
+        }
 
     previous_context = [
         {
             "question": entry.get("question", ""),
             "skill": entry.get("skill", ""),
             "score": entry.get("score"),
+            "answer": entry.get("answer", ""),
             "missing_concepts": entry.get("missing_concepts", []),
+            "plan_action": entry.get("strategy", ""),
         }
         for entry in state["asked_questions"][-5:]
     ]
 
+    plan = await plan_next_step(
+        {
+            "candidate": payload.candidate.model_dump(),
+            "job": payload.job.model_dump(),
+            "last_question": state.get("last_question", ""),
+            "last_answer": state.get("last_answer", ""),
+            "evaluation": state.get("last_evaluation") or {},
+            "interview_state": {
+                "phase": state.get("phase", "technical"),
+                "history": state.get("history", [])[-8:],
+                "covered_skills": state.get("covered_skills", []),
+                "current_focus": state.get("current_focus"),
+            },
+        }
+    )
+
     result = await generate_question(
+        plan=plan,
         context={
             "candidate": payload.candidate.model_dump(),
             "job": payload.job.model_dump(),
-            "focus_skill": state["current_skill"],
+            "last_question": state.get("last_question", ""),
+            "last_answer": state.get("last_answer", ""),
+            "interview_state": {
+                "phase": state.get("phase", "technical"),
+                "covered_skills": state.get("covered_skills", []),
+                "current_focus": state.get("current_focus"),
+            },
+            "previous_context": previous_context,
         },
-        strategy=strategy,
-        previous_qna=previous_context,
     )
 
     asked_entry = {
@@ -195,19 +264,27 @@ async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
         "skill": result.skill,
         "difficulty": result.difficulty,
         "type": result.type,
-        "strategy": strategy,
+        "strategy": plan.action,
+        "plan_reason": plan.reason,
+        "plan_tone": plan.tone,
         "round": state["round"],
     }
     state["asked_questions"].append(asked_entry)
     if result.skill not in state["covered_skills"]:
         state["covered_skills"].append(result.skill)
-    state["last_strategy"] = strategy
-    state["next_strategy"] = None
+    state["last_plan"] = plan.model_dump()
+    state["last_question"] = result.question
+    state["history"].append({"role": "ai", "text": result.question})
+    state["current_focus"] = result.skill
+    state["current_skill"] = result.skill
+    _controller_enforce_phase(state)
     state["round"] += 1
 
     return {
         **result.model_dump(),
-        "strategy": strategy,
+        "strategy": plan.action,
+        "plan_reason": plan.reason,
+        "tone": plan.tone,
         "round": asked_entry["round"],
         "tags": [result.skill],
     }
@@ -219,28 +296,18 @@ async def evaluate_answer_endpoint(payload: EvaluateAnswerRequest) -> dict:
     state = _interview_pipeline_state.get(payload.session_id)
 
     if state is not None:
-        state["last_score"] = result.score
-        state["last_missing_concepts"] = result.missing_concepts
+        state["last_answer"] = payload.answer
+        state["last_evaluation"] = result.model_dump()
+        state["history"].append({"role": "user", "text": payload.answer})
 
         if state.get("asked_questions"):
             state["asked_questions"][-1]["score"] = result.score
+            state["asked_questions"][-1]["answer"] = payload.answer
             state["asked_questions"][-1]["missing_concepts"] = result.missing_concepts
-
-        if result.score < 0.5:
-            state["next_strategy"] = "follow_up"
-        elif result.score > 0.8:
-            state["next_strategy"] = "deep_dive"
-        else:
-            state["next_strategy"] = None
-
-        if result.missing_concepts:
-            state["current_skill"] = str(result.missing_concepts[0]).strip().lower()
-        else:
-            state["current_skill"] = _pick_focus_skill(state, state.get("context", {}))
 
     return {
         **result.model_dump(),
-        "next_strategy": (state or {}).get("next_strategy"),
+        "next_strategy": None,
         "current_skill": (state or {}).get("current_skill"),
     }
 

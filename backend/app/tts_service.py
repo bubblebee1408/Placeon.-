@@ -50,9 +50,12 @@ class MacTTSService:
         selected_voice = cls.resolve_voice(voice, voices)
 
         tmp_path: Path | None = None
+        wav_path: Path | None = None
         try:
             with tempfile.NamedTemporaryFile(suffix=".aiff", delete=False) as tmp:
                 tmp_path = Path(tmp.name)
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as wav_tmp:
+                wav_path = Path(wav_tmp.name)
 
             subprocess.run(
                 ["say", "-v", selected_voice, "-r", str(rate), "-o", str(tmp_path), stripped_text],
@@ -61,13 +64,37 @@ class MacTTSService:
                 text=True,
             )
 
+            mime_type = "audio/aiff"
             data = tmp_path.read_bytes()
+
+            try:
+                subprocess.run(
+                    [
+                        "afconvert",
+                        "-f",
+                        "WAVE",
+                        "-d",
+                        "LEI16",
+                        str(tmp_path),
+                        str(wav_path),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                wav_data = wav_path.read_bytes()
+                if wav_data:
+                    data = wav_data
+                    mime_type = "audio/wav"
+            except (FileNotFoundError, subprocess.CalledProcessError, OSError):
+                pass
+
             if not data:
                 raise TTSServiceError("Generated audio is empty")
 
             return {
                 "audio_base64": base64.b64encode(data).decode("utf-8"),
-                "mime_type": "audio/aiff",
+                "mime_type": mime_type,
                 "voice": selected_voice,
             }
         except (FileNotFoundError, subprocess.CalledProcessError, OSError) as exc:
@@ -75,3 +102,5 @@ class MacTTSService:
         finally:
             if tmp_path and tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
+            if wav_path and wav_path.exists():
+                wav_path.unlink(missing_ok=True)

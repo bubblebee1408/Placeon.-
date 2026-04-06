@@ -2,24 +2,25 @@ import asyncio
 from typing import Any
 
 from backend.llm.ollama_client import call_ollama
-from backend.schemas.generator_schema import GeneratorInput, QuestionOutput
+from backend.schemas.generator_schema import GeneratorInput, PlanOutput, QuestionOutput
 from backend.utils.json_utils import extract_json
 
 _GENERATOR_MODEL = "llama3"
 
 
-def _normalize_question_type(strategy: str) -> str:
-    if strategy in {"follow_up", "deep_dive"}:
-        return "conceptual"
-    return strategy
+def _default_question_type(action: str) -> str:
+    if action == "explore_project":
+        return "behavioral"
+    if action == "new_topic":
+        return "system_design"
+    return "conceptual"
 
 
 async def generate_question(
+    plan: PlanOutput | dict[str, Any],
     context: dict[str, Any],
-    strategy: str,
-    previous_qna: dict[str, Any] | None = None,
 ) -> QuestionOutput:
-    raw_previous = previous_qna if previous_qna is not None else context.get("previous_context", [])
+    raw_previous = context.get("previous_context", [])
     if isinstance(raw_previous, list):
         previous_context = raw_previous
     else:
@@ -29,27 +30,31 @@ async def generate_question(
             }
         ]
 
+    plan_payload = plan.model_dump() if isinstance(plan, PlanOutput) else plan
+
     parsed_context = GeneratorInput.model_validate(
         {
             **context,
-            "strategy": strategy,
+            "plan": plan_payload,
             "previous_context": previous_context,
         }
     )
 
-    normalized_type = _normalize_question_type(parsed_context.strategy)
+    default_type = _default_question_type(parsed_context.plan.action)
     prompt = f"""
-You are a technical interviewer.
+You are a human interviewer.
 
 Generate ONE interview question.
 
 Rules:
-- Tie the question to the job role and candidate profile.
-- Keep focus on this skill: {parsed_context.focus_skill}.
-- Use this strategy: {parsed_context.strategy}.
-- The question must be progressive relative to previous_context and not random.
-- Do not repeat prior questions.
-- Match difficulty to candidate experience and job level.
+- Follow the planner decision and reason.
+- Keep the conversation natural and adaptive.
+- Reference the previous answer context when relevant.
+- Use smooth transition phrases and avoid abrupt jumps.
+- Keep focus on this skill: {parsed_context.plan.target_skill}.
+- Respect this tone: {parsed_context.plan.tone}.
+- Respect this desired difficulty: {parsed_context.plan.difficulty}.
+- Avoid repeating prior questions.
 
 Return ONLY JSON:
 {{
@@ -62,7 +67,7 @@ Return ONLY JSON:
 Context:
 {parsed_context.model_dump_json()}
 
-Set "type" to "{normalized_type}" unless role fit is impossible.
+Set "type" to "{default_type}" unless role fit is impossible.
 """
     output = await asyncio.to_thread(
         call_ollama,
