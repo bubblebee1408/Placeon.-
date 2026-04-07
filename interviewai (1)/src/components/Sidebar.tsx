@@ -3,8 +3,7 @@ import {
   MessageSquare, 
   Clock, 
   CheckCircle2, 
-  FileText, 
-  Layers
+  Send
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -60,13 +59,39 @@ export const Sidebar = ({
     await onSubmitAnswer(outgoing);
   };
 
+  const statusLabel = status === 'connecting' ? 'Connecting' : status === 'thinking' ? 'Processing' : status === 'error' ? 'Error' : 'Live';
+  const statusColor = status === 'error' 
+    ? 'text-red-500 bg-red-50 border-red-200' 
+    : status === 'connecting' 
+      ? 'text-amber-500 bg-amber-50 border-amber-200'
+      : status === 'thinking'
+        ? 'text-violet-500 bg-violet-50 border-violet-200'
+        : 'text-emerald-500 bg-emerald-50 border-emerald-200';
+
   return (
     <aside className="flex-1 flex flex-col gap-3 min-w-[320px] h-full overflow-hidden">
+      {/* Timer + Status Bar */}
+      <div className="rounded-2xl px-4 py-3 border border-slate-200/80 bg-slate-100/80 shadow-sm flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <Clock size={14} className="text-blue-500" />
+          <span className="text-sm font-bold text-slate-800 tabular-nums tracking-tight">
+            {formatTime(timer)}
+          </span>
+        </div>
+        <div className={cn(
+          'px-2.5 py-1 rounded-full text-[10px] font-semibold border capitalize',
+          statusColor
+        )}>
+          {statusLabel}
+        </div>
+      </div>
+
+      {/* Transcript Panel */}
       <div className="flex-1 rounded-2xl flex flex-col overflow-hidden border border-slate-200/80 bg-slate-100/80 shadow-sm">
-        <div className="p-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
-              <MessageSquare size={16} />
+              <MessageSquare size={14} />
             </div>
             <h3 className="font-bold text-sm text-slate-800 tracking-tight">Transcript</h3>
           </div>
@@ -76,28 +101,29 @@ export const Sidebar = ({
           </div>
         </div>
         
-        <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
-          <div className="text-[10px] text-slate-500 bg-white border border-slate-200 rounded-xl p-2.5">
-            <div className="font-semibold uppercase tracking-wider text-slate-400 mb-1">Current Prompt</div>
+        <div className="flex-1 p-3 space-y-2.5 overflow-y-auto custom-scrollbar">
+          {/* Current prompt */}
+          <div className="text-[11px] text-slate-600 bg-white border border-slate-200 rounded-xl p-3">
+            <div className="font-semibold uppercase tracking-wider text-[9px] text-slate-400 mb-1">Current Prompt</div>
             {currentQuestion || 'Waiting for first question...'}
           </div>
 
+          {/* Error */}
           {errorMessage && (
             <div className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5">
               Backend Error: {errorMessage}
             </div>
           )}
 
+          {/* Messages */}
           {messages.map(msg => (
             <div key={msg.id} className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className={cn(
-                  'text-[9px] font-semibold uppercase tracking-wider',
-                  msg.sender === 'AI Mentor' ? 'text-blue-600' : 'text-slate-500'
-                )}>
-                  {msg.sender} • {msg.time}
-                </span>
-              </div>
+              <span className={cn(
+                'text-[9px] font-semibold uppercase tracking-wider',
+                msg.sender === 'AI Mentor' ? 'text-blue-600' : 'text-slate-500'
+              )}>
+                {msg.sender} • {msg.time}
+              </span>
               <p className={cn(
                 'text-xs leading-relaxed p-2.5 rounded-xl border',
                 msg.sender === 'AI Mentor' 
@@ -109,6 +135,7 @@ export const Sidebar = ({
             </div>
           ))}
           
+          {/* Speaking indicator */}
           {isSpeaking && (
             <motion.div 
               initial={{ opacity: 0 }}
@@ -124,81 +151,56 @@ export const Sidebar = ({
             </motion.div>
           )}
 
-          <div className="text-[11px] text-slate-500 bg-white border border-slate-200 rounded-xl p-2.5">
-            {status === 'thinking' ? 'Analyzing response...' : 'Latency stable'}
-          </div>
+          {/* Last evaluation */}
+          {lastEvaluation && (
+            <div className="text-[11px] text-slate-600 bg-white border border-slate-200 rounded-xl p-2.5 space-y-1">
+              <div className="font-semibold text-[9px] uppercase tracking-wider text-slate-400 mb-1">Evaluation</div>
+              <div>Score: {(lastEvaluation.score * 100).toFixed(0)}%</div>
+              <div>Confidence: {(lastEvaluation.confidence * 100).toFixed(0)}%</div>
+              {lastEvaluation.missing_concepts.length > 0 && (
+                <div>Missing: {lastEvaluation.missing_concepts.slice(0, 3).join(', ')}</div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="rounded-2xl p-3 space-y-3 border border-slate-200/80 shadow-sm bg-slate-100/80 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Interview Duration</span>
-            <div className="flex items-center gap-1.5">
-              <Clock size={12} className="text-blue-500" />
-              <span className="text-base font-bold text-slate-800 tabular-nums">
-                {formatTime(timer)}
-              </span>
-            </div>
-          </div>
-          <div className={cn(
-            'px-2 py-1 rounded-full text-[10px] font-semibold border',
-            status === 'error' ? 'text-red-500 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200'
-          )}>
-            {status}
-          </div>
-        </div>
-
+      {/* Controls Panel */}
+      <div className="rounded-2xl p-3 space-y-2.5 border border-slate-200/80 shadow-sm bg-slate-100/80 shrink-0">
         <button 
           onClick={() => setIsSpeaking(!isSpeaking)}
           className={cn(
-            'w-full py-3 rounded-full font-semibold text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
+            'w-full py-2.5 rounded-full font-semibold text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
             isSpeaking 
               ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-200'
               : 'bg-white text-slate-500 shadow-none border border-slate-200'
           )}
         >
           <span>{isSpeaking ? "Done Speaking" : "Start Speaking"}</span>
-          <CheckCircle2 size={18} />
+          <CheckCircle2 size={16} />
         </button>
 
-        <textarea
-          value={quickAnswer}
-          onChange={(event) => setQuickAnswer(event.target.value)}
-          placeholder={view === 'ide' ? 'Describe your coding approach...' : view === 'whiteboard' ? 'Describe your architecture decisions...' : 'Type your answer...'}
-          className="w-full min-h-20 bg-white rounded-xl p-2.5 text-xs text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-        />
+        <div className="flex gap-2">
+          <textarea
+            value={quickAnswer}
+            onChange={(event) => setQuickAnswer(event.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            placeholder={view === 'ide' ? 'Describe your approach...' : view === 'whiteboard' ? 'Describe your decisions...' : 'Type your answer...'}
+            className="flex-1 min-h-[72px] bg-white rounded-xl p-2.5 text-xs text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+          />
+        </div>
         <button
           onClick={submit}
           disabled={status === 'connecting' || status === 'thinking' || !quickAnswer.trim()}
-          className="w-full py-2.5 rounded-xl font-semibold text-xs bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-2.5 rounded-xl font-semibold text-xs bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
+          <Send size={13} />
           {status === 'thinking' ? 'Submitting...' : 'Submit Response'}
-        </button>
-
-        {lastEvaluation && (
-          <div className="text-[11px] text-slate-600 bg-white border border-slate-200 rounded-xl p-2.5 space-y-1">
-            <div>Score: {(lastEvaluation.score * 100).toFixed(0)}%</div>
-            <div>Confidence: {(lastEvaluation.confidence * 100).toFixed(0)}%</div>
-            {lastEvaluation.missing_concepts.length > 0 && (
-              <div>Missing: {lastEvaluation.missing_concepts.slice(0, 3).join(', ')}</div>
-            )}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button className="flex-1 py-2 bg-white rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5">
-            <FileText size={14} />
-            Notes
-          </button>
-          <button className="flex-1 py-2 bg-white rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5">
-            <Layers size={14} />
-            Resources
-          </button>
-        </div>
-
-        <button className="w-full py-2 rounded-full text-xs font-semibold text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 transition-colors">
-          End Interview
         </button>
       </div>
     </aside>
