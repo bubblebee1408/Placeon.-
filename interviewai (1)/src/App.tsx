@@ -237,7 +237,9 @@ export default function App() {
                 {renderView()}
               </motion.div>
             </AnimatePresence>
-
+            <div className={currentView === 'whiteboard' ? 'hidden' : 'hidden md:block'}>
+              <VideoFeed />
+            </div>
           </section>
 
           <div className="hidden md:flex flex-1 h-full overflow-hidden min-w-[320px] max-w-[360px]">
