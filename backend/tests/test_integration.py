@@ -35,30 +35,21 @@ def test_generate_then_evaluate_integration(monkeypatch) -> None:
     generated = asyncio.run(
         generate_question(
             plan={
-                "action": "new_topic",
+                "action": "probe",
                 "target_skill": "api design",
                 "reason": "Candidate can move from intro depth to architecture framing.",
                 "difficulty": "medium",
                 "tone": "neutral",
             },
             context={
-                "candidate": {
-                    "name": "Taylor",
-                    "experience_years": 2,
-                    "skills": ["node", "api design"],
-                    "projects": ["billing api"],
-                    "education": "B.E.",
-                },
-                "job": {
-                    "role": "Backend Engineer",
-                    "company": "PlacedOn",
-                    "level": "mid",
-                    "required_skills": ["api design", "databases"],
-                    "preferred_skills": ["distributed systems"],
-                },
                 "last_question": "Tell me about a backend system you built.",
                 "last_answer": "I built a billing API with queues.",
-                "previous_context": [],
+                "minimal_state": {
+                    "last_score": 0.62,
+                    "topic": "api design",
+                    "difficulty": "medium",
+                },
+                "previous_question": "Tell me about a backend system you built.",
             },
         )
     )

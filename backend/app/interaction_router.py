@@ -47,6 +47,9 @@ _persona = PersonaEngine()
 _recovery = RecoveryManager()
 _interview_pipeline_state: dict[str, dict[str, Any]] = {}
 
+_MAX_HISTORY_ITEMS = 6
+_MAX_ASKED_ITEMS = 10
+
 
 class GenerateQuestionRequest(BaseModel):
     session_id: str = "default"
@@ -64,6 +67,13 @@ class TTSSpeakRequest(BaseModel):
     text: str = Field(min_length=1)
     voice: str | None = None
     rate: int = Field(default=185, ge=120, le=280)
+
+
+def _append_bounded(items: list[Any], value: Any, max_items: int) -> list[Any]:
+    items.append(value)
+    if len(items) > max_items:
+        del items[: len(items) - max_items]
+    return items
 
 
 def _pick_focus_skill(state: dict[str, Any], context: dict[str, Any]) -> str:
@@ -86,6 +96,11 @@ def _pick_focus_skill(state: dict[str, Any], context: dict[str, Any]) -> str:
     if targets:
         return str(targets[0]).strip().lower()
 
+    focus = str(context.get("interview_focus", "")).strip().lower()
+    if "ai" in focus:
+        return "ai fundamentals"
+    if "frontend" in focus:
+        return "frontend fundamentals"
     return "backend fundamentals"
 
 
@@ -104,11 +119,14 @@ def _ensure_interview_state(session_id: str, candidate: CandidateProfile, job: J
 
     state = _interview_pipeline_state.get(session_id)
     if state is None:
-        initial_focus = (
-            context["target_skills"][0]
-            if context.get("target_skills")
-            else (context["skill_gaps"][0] if context.get("skill_gaps") else "backend fundamentals")
-        )
+        if context.get("target_skills"):
+            initial_focus = context["target_skills"][0]
+        elif context.get("skill_gaps"):
+            initial_focus = context["skill_gaps"][0]
+        elif context.get("interview_focus") == "ai engineering systems":
+            initial_focus = "ai fundamentals"
+        else:
+            initial_focus = "backend fundamentals"
         state = {
             "asked_questions": [],
             "covered_skills": [],
@@ -122,6 +140,11 @@ def _ensure_interview_state(session_id: str, candidate: CandidateProfile, job: J
             "last_answer": "",
             "last_evaluation": None,
             "last_plan": None,
+            "minimal_state": {
+                "last_score": 0.5,
+                "topic": str(initial_focus).strip().lower(),
+                "difficulty": "medium",
+            },
             "candidate": candidate_payload,
             "job": job_payload,
             "context": context,
@@ -192,7 +215,7 @@ async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
         intro_question = await generate_intro(payload.candidate, payload.job)
         state["intro_sent"] = True
         state["last_question"] = intro_question
-        state["history"].append({"role": "ai", "text": intro_question})
+        _append_bounded(state["history"], {"role": "ai", "text": intro_question}, _MAX_HISTORY_ITEMS)
 
         asked_entry = {
             "question": intro_question,
@@ -202,7 +225,7 @@ async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
             "strategy": "intro",
             "round": state["round"],
         }
-        state["asked_questions"].append(asked_entry)
+        _append_bounded(state["asked_questions"], asked_entry, _MAX_ASKED_ITEMS)
         state["round"] += 1
         _controller_enforce_phase(state)
         return {
@@ -215,28 +238,19 @@ async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
             "tags": ["introduction"],
         }
 
-    previous_context = [
-        {
-            "question": entry.get("question", ""),
-            "skill": entry.get("skill", ""),
-            "score": entry.get("score"),
-            "answer": entry.get("answer", ""),
-            "missing_concepts": entry.get("missing_concepts", []),
-            "plan_action": entry.get("strategy", ""),
-        }
-        for entry in state["asked_questions"][-5:]
-    ]
+    minimal_state = state.get("minimal_state") or {
+        "last_score": 0.5,
+        "topic": state.get("current_focus") or "backend fundamentals",
+        "difficulty": "medium",
+    }
 
     plan = await plan_next_step(
         {
+            "minimal_state": minimal_state,
             "candidate": payload.candidate.model_dump(),
             "job": payload.job.model_dump(),
-            "last_question": state.get("last_question", ""),
-            "last_answer": state.get("last_answer", ""),
-            "evaluation": state.get("last_evaluation") or {},
             "interview_state": {
                 "phase": state.get("phase", "technical"),
-                "history": state.get("history", [])[-8:],
                 "covered_skills": state.get("covered_skills", []),
                 "current_focus": state.get("current_focus"),
             },
@@ -246,16 +260,10 @@ async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
     result = await generate_question(
         plan=plan,
         context={
-            "candidate": payload.candidate.model_dump(),
-            "job": payload.job.model_dump(),
             "last_question": state.get("last_question", ""),
             "last_answer": state.get("last_answer", ""),
-            "interview_state": {
-                "phase": state.get("phase", "technical"),
-                "covered_skills": state.get("covered_skills", []),
-                "current_focus": state.get("current_focus"),
-            },
-            "previous_context": previous_context,
+            "minimal_state": minimal_state,
+            "previous_question": state.get("last_question", ""),
         },
     )
 
@@ -269,14 +277,19 @@ async def generate_question_endpoint(payload: GenerateQuestionRequest) -> dict:
         "plan_tone": plan.tone,
         "round": state["round"],
     }
-    state["asked_questions"].append(asked_entry)
+    _append_bounded(state["asked_questions"], asked_entry, _MAX_ASKED_ITEMS)
     if result.skill not in state["covered_skills"]:
         state["covered_skills"].append(result.skill)
     state["last_plan"] = plan.model_dump()
     state["last_question"] = result.question
-    state["history"].append({"role": "ai", "text": result.question})
+    _append_bounded(state["history"], {"role": "ai", "text": result.question}, _MAX_HISTORY_ITEMS)
     state["current_focus"] = result.skill
     state["current_skill"] = result.skill
+    state["minimal_state"] = {
+        "last_score": float(minimal_state.get("last_score", 0.5)),
+        "topic": result.skill,
+        "difficulty": result.difficulty,
+    }
     _controller_enforce_phase(state)
     state["round"] += 1
 
@@ -298,7 +311,14 @@ async def evaluate_answer_endpoint(payload: EvaluateAnswerRequest) -> dict:
     if state is not None:
         state["last_answer"] = payload.answer
         state["last_evaluation"] = result.model_dump()
-        state["history"].append({"role": "user", "text": payload.answer})
+        _append_bounded(state["history"], {"role": "user", "text": payload.answer}, _MAX_HISTORY_ITEMS)
+        previous_topic = (state.get("minimal_state") or {}).get("topic") or state.get("current_focus")
+        previous_difficulty = (state.get("minimal_state") or {}).get("difficulty") or "medium"
+        state["minimal_state"] = {
+            "last_score": float(result.score),
+            "topic": str(previous_topic),
+            "difficulty": str(previous_difficulty),
+        }
 
         if state.get("asked_questions"):
             state["asked_questions"][-1]["score"] = result.score

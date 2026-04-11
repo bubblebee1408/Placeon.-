@@ -4,7 +4,22 @@ from backend.llm.generator import generate_question
 
 class QuestionGenerator:
     async def generate(self, request: QuestionRequest) -> QuestionOutput:
+        action_by_mode = {
+            "new": "new_topic",
+            "probe": "follow_up",
+            "retry": "simplify",
+        }
+        action = action_by_mode.get(request.mode, "new_topic")
+        tone = "supportive" if request.mode == "retry" else "neutral"
+
         generated = await generate_question(
+            plan={
+                "action": action,
+                "target_skill": request.target_skill,
+                "reason": f"AoT transition mode={request.mode} for skill progression.",
+                "difficulty": request.difficulty,
+                "tone": tone,
+            },
             context={
                 "candidate": {
                     "name": "AoT Candidate",
@@ -15,14 +30,20 @@ class QuestionGenerator:
                 },
                 "job": {
                     "role": "Backend Engineer",
+                    "company": "PlacedOn",
                     "level": "mid",
                     "required_skills": [request.target_skill],
                     "preferred_skills": [],
                 },
-                "focus_skill": request.target_skill,
+                "last_question": "",
+                "last_answer": "",
+                "interview_state": {
+                    "phase": "technical",
+                    "covered_skills": [request.target_skill],
+                    "current_focus": request.target_skill,
+                },
+                "previous_context": [{"mode": request.mode}],
             },
-            strategy="conceptual",
-            previous_qna=[{"mode": request.mode}],
         )
         return QuestionOutput(
             question=generated.question,

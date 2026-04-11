@@ -9,40 +9,33 @@ _INTRO_MODEL = "llama3"
 
 async def generate_intro(candidate: CandidateProfile, job: JobProfile) -> str:
     prompt = f"""
-You are a human interviewer.
-
-Write a natural interview opener that:
-- greets the candidate by name
-- mentions the role and company
-- sets friendly expectations for the interview
-- asks the candidate for a short introduction
-
-Tone: natural, human, friendly.
-
-Return ONLY JSON:
+Write a short friendly interview opener.
+Mention candidate name, role, company, and ask for a brief self-introduction.
+Return JSON only:
 {{
   "intro": "string"
 }}
-
-Candidate:
-{candidate.model_dump()}
-
-Job:
-{job.model_dump()}
+candidate={candidate.model_dump()}
+job={job.model_dump()}
 """
-    output = await asyncio.to_thread(
-        call_ollama,
-        prompt,
-        _INTRO_MODEL,
-        {
-            "temperature": 0.5,
-            "top_p": 0.92,
-        },
-    )
-    payload = extract_json(output)
-    intro = str(payload.get("intro", "")).strip()
-    if intro:
-        return intro
+    try:
+        output = await asyncio.to_thread(
+            call_ollama,
+            prompt,
+            _INTRO_MODEL,
+            {
+                "temperature": 0.5,
+                "top_p": 0.92,
+                "num_predict": 90,
+                "timeout_seconds": 10,
+            },
+        )
+        payload = extract_json(output)
+        intro = str(payload.get("intro", "")).strip()
+        if intro:
+            return intro
+    except Exception:  # noqa: BLE001
+        pass
 
     company = job.company.strip() or "the company"
     return (

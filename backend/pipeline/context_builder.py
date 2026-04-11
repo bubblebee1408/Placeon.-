@@ -34,6 +34,8 @@ def build_context(candidate: dict, job: dict) -> dict:
         interview_focus = "frontend systems"
     elif "data" in role:
         interview_focus = "data systems"
+    elif any(token in role for token in ("ai", "ml", "machine learning", "llm")):
+        interview_focus = "ai engineering systems"
     else:
         interview_focus = "role-specific engineering"
 

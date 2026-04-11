@@ -26,10 +26,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="AI Interview Backbone", lifespan=lifespan)
+_settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=_settings.cors_allow_origins,
+    allow_origin_regex=_settings.cors_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

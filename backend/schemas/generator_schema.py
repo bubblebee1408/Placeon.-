@@ -20,7 +20,7 @@ class JobProfile(BaseModel):
 
 
 class PlanOutput(BaseModel):
-    action: Literal["follow_up", "deep_dive", "new_topic", "simplify", "explore_project"]
+    action: Literal["help", "probe", "challenge"]
     target_skill: str = Field(min_length=1)
     reason: str = Field(min_length=1)
     difficulty: Literal["easy", "medium", "hard"]
@@ -28,13 +28,11 @@ class PlanOutput(BaseModel):
 
 
 class GeneratorInput(BaseModel):
-    candidate: CandidateProfile
-    job: JobProfile
     plan: PlanOutput
     last_question: str = ""
     last_answer: str = ""
-    previous_context: list[dict] = Field(default_factory=list)
-    interview_state: dict = Field(default_factory=dict)
+    minimal_state: dict = Field(default_factory=dict)
+    previous_question: str = ""
 
 
 class QuestionOutput(BaseModel):

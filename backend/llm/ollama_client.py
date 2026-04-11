@@ -19,13 +19,17 @@ def call_ollama(prompt: str, model: str = "llama3", options: dict[str, Any] | No
             "stream": False,
             "format": "json",
         }
+        merged_options: dict[str, Any] = {"num_predict": 128}
         if options:
-            payload["options"] = options
+            merged_options.update(options)
+        payload["options"] = merged_options
+
+        timeout_seconds = float(merged_options.pop("timeout_seconds", 20))
 
         response = requests.post(
             "http://localhost:11434/api/generate",
             json=payload,
-            timeout=30,
+            timeout=timeout_seconds,
         )
 
         if response.status_code != 200:

@@ -1,5 +1,4 @@
 import asyncio
-import json
 
 from backend.pipeline.context_builder import build_context
 from backend.pipeline.conversation_orchestrator import generate_intro
@@ -30,22 +29,14 @@ def test_case1_backend_role_focus_not_frontend_heavy() -> None:
 
 
 def test_planner_returns_valid_plan(monkeypatch) -> None:
-    def fake_call_ollama(*_args, **_kwargs):
-        return json.dumps(
-            {
-                "action": "deep_dive",
-                "target_skill": "caching",
-                "reason": "Candidate showed strong command and can be challenged.",
-                "difficulty": "hard",
-                "tone": "challenging",
-            }
-        )
-
-    monkeypatch.setattr("backend.pipeline.planner.call_ollama", fake_call_ollama)
-
     plan = asyncio.run(
         plan_next_step(
             {
+                "minimal_state": {
+                    "last_score": 0.83,
+                    "topic": "caching",
+                    "difficulty": "hard",
+                },
                 "candidate": {
                     "name": "A",
                     "experience_years": 2,
@@ -77,7 +68,7 @@ def test_planner_returns_valid_plan(monkeypatch) -> None:
             }
         )
     )
-    assert plan.action == "deep_dive"
+    assert plan.action == "challenge"
     assert plan.target_skill == "caching"
     assert plan.difficulty == "hard"
 
