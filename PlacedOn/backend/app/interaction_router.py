@@ -12,9 +12,9 @@ from app.live_runtime import LiveInterviewRuntime
 from app.models import InterviewState
 from app.tts_service import MacTTSService, TTSServiceError
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-if ROOT_DIR not in sys.path:
-    sys.path.append(ROOT_DIR)
+CODE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+if CODE_ROOT not in sys.path:
+    sys.path.append(CODE_ROOT)
 
 from backend.llm.generator import generate_question
 from backend.llm.judge import evaluate_answer

@@ -4,9 +4,9 @@ import os
 import sys
 from typing import Any
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-if ROOT_DIR not in sys.path:
-    sys.path.append(ROOT_DIR)
+CODE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+if CODE_ROOT not in sys.path:
+    sys.path.append(CODE_ROOT)
 
 from aot_layer.config import AoTConfig
 from aot_layer.models import InterviewState as AoTInterviewState
