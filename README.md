@@ -2,6 +2,11 @@
 
 An AI-powered interviewer that replaces the resume as the primary signal for hiring decisions.
 
+## Layout
+
+- `PlacedOn/` contains runtime code and implementation modules
+- `PlacedOn-Research/` contains product, business, research, and inspiration material
+
 ## What This Solves
 
 Resumes are a poor judge of character. Soft skills — how someone thinks, communicates, handles ambiguity, collaborates — are often more important than credentials but invisible on paper. PlacedOn conducts a 30-40 minute adaptive AI interview when a candidate onboards, building a rich behavioral profile that captures what resumes cannot.
@@ -37,21 +42,24 @@ Built on **Markovian Reasoning** (from the Atom of Thoughts framework, NeurIPS 2
 
 ```
 PlacedOn/
-├── README.md                    ← You are here
-├── Markovian-Reasoning/         ← Technical foundation
-│   └── AoT-for-AI-Interviewer.md
-├── business/                    ← Market & financial viability
-│   ├── market-analysis.md
-│   ├── unit-economics.md
-│   ├── competitive-analysis.md
-│   └── go-to-market.md
-├── product/                     ← Product specification
-│   ├── product-spec.md
-│   ├── architecture.md
-│   └── bias-safety.md
-└── research/                    ← Reference materials
-    ├── papers/
-    └── notes/
+├── README.md
+├── PlacedOn/                  ← implementation code
+│   ├── backend/
+│   ├── interaction_layer/
+│   ├── interview_system/
+│   ├── aot_layer/
+│   ├── layer2/
+│   ├── layer3/
+│   ├── layer5/
+│   ├── tests/
+│   └── training/
+└── PlacedOn-Research/         ← product, research, business, docs, inspiration
+    ├── product/
+    ├── business/
+    ├── research/
+    ├── Markovian-Reasoning/
+    ├── docs/
+    └── Inspo/
 ```
 
 ## Key Numbers

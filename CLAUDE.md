@@ -4,105 +4,122 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repository Is
 
-**PlacedOn** is a product specification and business plan for an AI-powered hiring platform — not a software implementation. All files are documentation: market analysis, product specs, architecture design, technical implementation guides, and business strategy.
+**PlacedOn** is an AI-powered hiring platform. The repo contains both product/business documentation AND active implementation code.
 
-The immediate next step is building an MVP. When implementation begins, the recommended stack is Next.js + FastAPI, PostgreSQL (Supabase), OpenAI API, and Vercel/Railway for hosting.
+**Active implementation lives in:**
+- `PlacedOn/backend/` — FastAPI server (Python), the core interview engine
+- `PlacedOn/interaction_layer/` — Real-time voice/session/turn orchestration layer
+- `PlacedOn/pre-interview/` — React + Vite + Tailwind frontend (pre-interview screen, Gemini API)
 
-## Document Structure
+Documentation (strategy, specs, research) lives in `PlacedOn-Research/product/`, `PlacedOn-Research/business/`, `PlacedOn-Research/research/`, `PlacedOn-Research/Markovian-Reasoning/`.
 
-**Strategy & Planning:**
-- `IMPLEMENTATION-ROADMAP.md` — Phased build plan, tech risks, cost timeline, success criteria. **Read this to understand build order.**
-- `problems/critical-risks.md` — Honest critique of the product, Indian market challenges, and what can fail
-- `README.md` — Project overview and value proposition
+## Development Commands
 
-**Product & Interviewer:**
-- `product/product-spec.md` — Feature list, user flows, validation strategy, MVP scope
-- `product/interviewer-model.md` — Behavioral spec of the AI interviewer: persona, constraints, how interviews actually flow, edge cases
-- `Markovian-Reasoning/AoT-for-AI-Interviewer.md` — Technical implementation of the Markov engine. **Start here for code.**
-- `product/architecture.md` — System design, microservices, data models, tech stack
-- `product/bias-safety.md` — ABLEIST framework, how to prevent/detect bias, hard cases
+### Backend (FastAPI)
 
-**Business:**
-- `business/go-to-market.md` — Launch strategy, college partnerships, pilot phase, scaling plan
-- `business/unit-economics.md` — Cost per interview (voice: $0.35–0.50), margins, financial projections, break-even at 11 customers
-- `business/competitive-analysis.md` — HireVue vs. Mercor vs. PlacedOn, our positioning in Indian market, moats
-- `business/market-analysis.md` — TAM/SAM/SOM, target customers, market tailwinds
+```bash
+cd PlacedOn/backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
-**Research:**
-- `research/notes/paper-summaries.md` — Key findings from AoT (NeurIPS 2025) and ABLEIST papers
-- `research/notes/ABLEIST-deep-dive.md` — Detailed analysis of disability bias in hiring
+# Start Redis (required)
+redis-server
+# or: docker run --rm -p 6379:6379 redis:7
 
-## Core Technical Architecture
+# Run server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-### The Markov Interview Engine
+# Run all tests
+python3 -m pytest -q
 
-The central innovation. Each ~5-minute interview segment runs this loop:
+# Run a single test file
+python3 -m pytest tests/test_websocket.py -q
 
-```
-PROCESS RESPONSE → CONTRACT (update state Qᵢ₊₁) → JUDGE (verify fidelity)
-→ BIAS CHECK (8 ABLEIST metrics) → DECOMPOSE (DAG of remaining goals)
-→ GENERATE QUESTION
+# Manual WebSocket test client
+python3 manual_ws_client.py --url http://127.0.0.1:8000 --interview-id demo-1
 ```
 
-Key property: state complexity is O(1) not O(n) — only the current state `Qᵢ` and the new response feed into the next contraction, not the full transcript. This reduces cost from ~$0.10 to ~$0.03 per interview.
-
-### ABLEIST Bias Framework
-
-8-metric framework integrated at every state contraction. Catches subtle ableist harms that OpenAI Moderation and Perspective API miss entirely (those tools detect 0% of harms that ABLEIST catches). The 8 metrics: One-Size-Fits-All Ableism, Infantilization, Technoableism, Anticipated Ableism, Ability Saviorism, Inspiration Porn, Superhumanization, Tokenism.
-
-### System Layers
-
+Environment variables (all optional, have defaults):
 ```
-Candidate/Employer UI (Next.js)
-    ↓
-API Gateway (auth, rate limiting)
-    ↓
-Microservices: Interview Service (Markov Engine) | Profile Service | Employer Service
-    ↓
-PostgreSQL (users/billing) + Profile Store + Encrypted Transcript Store (S3)
-    ↓
-LLM API (OpenAI GPT-4o-mini for contractions, GPT-4o for profile synthesis)
+REDIS_URL=redis://localhost:6379/0
+SESSION_TTL_SECONDS=1800
+STREAM_DELAY_SECONDS=0.05
+INITIAL_QUESTION="Tell me about a backend system you designed recently."
 ```
 
-## Key Numbers to Keep in Mind
+### Frontend (pre-interview screen)
 
-- $0.03 per interview (40 LLM calls × ~$0.00036/call with GPT-4o-mini)
-- Break-even: ~11 paying customers at $400/month average
-- MVP infrastructure budget: $200–500/month
-- Target first customers: Indian tech startups (5–10 free pilots, then $299/month)
+```bash
+cd PlacedOn/pre-interview
+npm install
+# Set GEMINI_API_KEY in .env.local
+npm run dev        # runs on port 3000
+npm run build
+npm run lint       # tsc --noEmit
+```
 
-## Implementation Priority Order
+## Code Architecture
 
-**Phase 1 (MVP): Build Text-Based First**
-1. Markov Interview Engine (decompose → contract → judge loop)
-2. State schema and persistence (save after each ~5-min segment)
-3. Candidate state update prompts
-4. ABLEIST bias checker (runs at every contraction)
-5. Profile generation from final state (extract atomic traits)
-6. Text-based chat interface (web, simple)
-7. Candidate self-validation ("Does this feel accurate?")
+### Backend Layer (`PlacedOn/backend/`)
 
-**Phase 2: Add Voice & Validation**
-1. STT (Whisper API initially, self-host later)
-2. TTS (ElevenLabs or Google, optimize for latency <2 sec)
-3. Handle Indian accents and code-switching (Hinglish)
-4. Employer web dashboard (basic: job listings, candidate feed, save/pass)
-5. Track hiring outcomes (infrastructure to correlate profiles to hires)
+**Entry point:** `app/main.py` — FastAPI app with lifespan setup (Redis session manager, LiveInterviewRuntime).
 
-**Phase 3: Mobile & Scaling**
-1. Employer mobile app (React Native/Flutter)
-2. Candidate mobile app (job matches, verified achievements)
-3. Premium tiers (notifications, visibility)
-4. Trait-based filtering and search
+**Two WebSocket endpoints** in `app/websocket_router.py` and `app/interaction_router.py`:
+- `/ws/{interview_id}` — Simple stateful text interview. Handles reconnection, idempotency via `message_id`, token streaming.
+- `/interaction/ws/{session_id}` — Full voice pipeline: receives audio chunks → STT → turn completion detection → backend processing → persona streaming + TTS audio frames.
 
----
+**HTTP endpoints** in `app/interaction_router.py`:
+- `POST /generate-question` — Stateful question generation (intro phase → technical phase). Uses in-memory dict `_interview_pipeline_state` keyed by `session_id`.
+- `POST /evaluate-answer` — Scores answer, updates state with evaluation.
+- `POST /process-turn` — Used internally by interaction layer to advance interview state.
+- `GET/POST /tts/voices`, `/tts/speak` — Mac system TTS.
 
-## Critical Success Factors
+**Pipeline** (`pipeline/`):
+- `conversation_orchestrator.py` — Generates intro question via Ollama (`llama3`).
+- `planner.py` — Decides next interview action (deepen/broaden/pivot/close).
+- `context_builder.py` — Builds structured context from candidate + job profiles.
+- `question_strategy.py` — Strategy selection logic.
 
-1. **Markov contraction quality** — if the LLM loses info at minute 10, every subsequent state is corrupted. Spend time on JUDGE mechanism and prompt tuning.
+**LLM layer** (`llm/`):
+- `ollama_client.py` — Calls local Ollama instance (default model: `llama3`).
+- `generator.py` — Generates interview questions given a plan and context.
+- `judge.py` — Evaluates candidate answers; returns score + missing concepts.
 
-2. **Voice latency** — >2 second response time breaks conversational flow. Streaming STT/TTS is non-negotiable.
+**Session management** (`app/session_manager.py`) — Redis-backed, async, TTL-based. Key format: `interview:{interview_id}`.
 
-3. **Predictive validity** — by month 9, you must show that AI profiles predict actual job performance. This is the difference between "clever tool" and "product with a moat."
+**State compression** (`app/state_compressor.py`) — Compresses state to ≤400 chars to keep LLM context bounded (O(1) complexity property of the Markov engine).
 
-4. **Indian market focus** — 1.5M freshers graduate annually. Design for them: freshers have no work experience to draw from, so design scenarios and questions accordingly. Hinglish support isn't optional.
+**Schemas** (`schemas/`): `generator_schema.py` (CandidateProfile, JobProfile, question output), `judge_schema.py` (answer evaluation output).
+
+### Interaction Layer (`PlacedOn/interaction_layer/`)
+
+Sits above the backend. Handles real-time voice I/O, does NOT do reasoning. Components:
+- `voice/stt.py`, `voice/tts.py` — Currently mock implementations.
+- `communication/websocket_manager.py` — Connection lifecycle.
+- `session/session_manager.py` — Session timeout, silence detection, turn counting.
+- `turn/turn_manager.py` — Collects transcript, detects completion (final event / explicit stop / silence), submits to backend via `POST /process-turn`.
+- `persona/persona_engine.py` — Streams backend response tokens (no generation).
+- `monitoring/presence.py` — Camera/tab/latency presence snapshots.
+- `error_handling/recovery.py` — Silence and low-confidence recovery actions.
+
+### Frontend (`PlacedOn/pre-interview/src/`)
+
+React + Vite + Tailwind CSS v4. Uses Gemini API (`@google/genai`) directly from client. Connects to backend at `http://localhost:8000` (CORS configured for port 3000). Uses `lucide-react` for icons and `motion` for animations.
+
+## Important Architectural Notes
+
+**Two parallel interview state systems exist:**
+1. `InterviewState` (Pydantic model in `app/models.py`) — persisted in Redis via `SessionManager`, used by `/ws/{interview_id}` and `/interaction/ws/{session_id}`.
+2. `_interview_pipeline_state` dict in `interaction_router.py` — in-memory only, used by `/generate-question` and `/evaluate-answer` endpoints. Lost on server restart.
+
+**LLM backend is Ollama (local), not OpenAI** — The current implementation calls a local Ollama instance with `llama3`. The product spec targets OpenAI GPT-4o-mini, but the implementation uses Ollama for development.
+
+**The interaction router imports from both `PlacedOn/backend/` and `PlacedOn/interaction_layer/`** using sys.path manipulation. The root of the repo must be in PYTHONPATH or the server must be run from the repo root.
+
+## Product Documentation (for context)
+
+- `PlacedOn-Research/IMPLEMENTATION-ROADMAP.md` — Phased build plan and build order
+- `PlacedOn-Research/Markovian-Reasoning/AoT-for-AI-Interviewer.md` — Markov engine design (O(1) state complexity, contraction loop)
+- `PlacedOn-Research/product/interviewer-model.md` — AI interviewer behavioral spec
+- `PlacedOn-Research/product/bias-safety.md` — ABLEIST 8-metric bias framework (integrated at every state contraction)
+- `PlacedOn-Research/product/architecture.md` — Target system design (Next.js + FastAPI + PostgreSQL + OpenAI)
