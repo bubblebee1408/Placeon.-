@@ -3,10 +3,10 @@ import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from app.config import get_settings
-from app.live_runtime import LiveInterviewRuntime
-from app.models import IncomingMessage, InterviewState
-from app.utils import stream_tokens
+from .config import get_settings
+from .live_runtime import LiveInterviewRuntime
+from .models import IncomingMessage, InterviewState
+from .utils import stream_tokens
 
 router = APIRouter()
 

@@ -2,7 +2,7 @@ import asyncio
 import re
 from collections.abc import AsyncGenerator
 
-from app.models import InterviewState
+from .models import InterviewState
 
 
 async def stream_tokens(text: str, delay_seconds: float) -> AsyncGenerator[str, None]:

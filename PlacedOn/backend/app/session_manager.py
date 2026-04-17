@@ -5,7 +5,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for minimal test environments
     Redis = Any
 
-from app.models import InterviewState
+from .models import InterviewState
 
 
 class SessionManager:

@@ -3,11 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import get_settings
-from app.interaction_router import router as interaction_router
-from app.live_runtime import LiveInterviewRuntime
-from app.session_manager import SessionManager
-from app.websocket_router import router as websocket_router
+from .config import get_settings
+from .interaction_router import router as interaction_router
+from .live_runtime import LiveInterviewRuntime
+from .session_manager import SessionManager
+from .websocket_router import router as websocket_router
 
 
 @asynccontextmanager
