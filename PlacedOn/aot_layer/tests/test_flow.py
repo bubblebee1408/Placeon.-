@@ -3,6 +3,7 @@ import asyncio
 from aot_layer.config import AoTConfig
 from aot_layer.models import StartInput
 from aot_layer.orchestrator import AoTOrchestrator
+from backend.schemas.judge_schema import JudgeOutput
 
 
 async def _scripted_answers(_turn: int, _question: str, skill: str, mode: str) -> str:
@@ -16,13 +17,27 @@ async def _scripted_answers(_turn: int, _question: str, skill: str, mode: str) -
     return scripted.get((skill, mode), "default answer")
 
 
-def test_full_flow_transitions_probe_retry_move() -> None:
-    orchestrator = AoTOrchestrator(config=AoTConfig(total_turn_limit=7, max_retries_per_skill=1))
-    from skill_taxonomy import DEFAULT_AOT_SKILLS
-    skills = DEFAULT_AOT_SKILLS
+def test_full_flow_transitions_probe_retry_move(monkeypatch) -> None:
+    async def fake_evaluate_answer(self, skill: str, answer: str) -> 'JudgeResult':
+        from aot_layer.models import JudgeResult
+        if "ttl" in answer or "goroutines" in answer or "REST" in answer:
+            return JudgeResult(direction="partial", confidence=0.6, evidence=[], missing=["x"], probe_recommended=True, probe_focus=["x"], recovery_possible=False)
+        if "cache" in answer:
+            return JudgeResult(direction="correct", confidence=0.9, evidence=[], missing=[], probe_recommended=False, probe_focus=[], recovery_possible=False)
+        return JudgeResult(direction="wrong", confidence=0.4, evidence=[], missing=[], probe_recommended=False, probe_focus=[], recovery_possible=True)
+
+    async def fake_generate(*args, **kwargs):
+        from aot_layer.models import QuestionOutput
+        return QuestionOutput(question="Mock question?", skill="mock", difficulty="medium")
+
+    monkeypatch.setattr("aot_layer.judge.Judge.evaluate", fake_evaluate_answer)
+    monkeypatch.setattr("aot_layer.generator.QuestionGenerator.generate", fake_generate)
+    skills = ["caching", "concurrency", "api_design"]
+    
+    orchestrator = AoTOrchestrator(config=AoTConfig(skills=skills, total_turn_limit=7, max_retries_per_skill=1))
     start = StartInput(
-        skill_vector=[0.3] * len(skills),
-        sigma2=[0.95] * len(skills),
+        skill_vector=[0.3, 0.4, 0.8],
+        sigma2=[0.95, 0.85, 0.2],
         past_attempts_per_skill={s: 0 for s in skills},
     )
 
@@ -35,16 +50,26 @@ def test_full_flow_transitions_probe_retry_move() -> None:
     assert 3 <= len(result.logs) <= 5
 
 
-def test_repeated_wrong_answers_force_move() -> None:
+def test_repeated_wrong_answers_force_move(monkeypatch) -> None:
     async def always_wrong(_turn: int, _question: str, _skill: str, _mode: str) -> str:
         return "no idea"
 
-    orchestrator = AoTOrchestrator(config=AoTConfig(max_retries_per_skill=2, total_turn_limit=6))
-    from skill_taxonomy import DEFAULT_AOT_SKILLS
-    skills = DEFAULT_AOT_SKILLS
+    async def fake_evaluate_answer(self, skill: str, answer: str) -> 'JudgeResult':
+        from aot_layer.models import JudgeResult
+        return JudgeResult(direction="wrong", confidence=0.4, evidence=[], missing=[], probe_recommended=False, probe_focus=[], recovery_possible=True)
+        
+    async def fake_generate(*args, **kwargs):
+        from aot_layer.models import QuestionOutput
+        return QuestionOutput(question="Mock question?", skill="mock", difficulty="medium")
+
+    monkeypatch.setattr("aot_layer.judge.Judge.evaluate", fake_evaluate_answer)
+    monkeypatch.setattr("aot_layer.generator.QuestionGenerator.generate", fake_generate)
+    skills = ["caching", "concurrency", "api_design"]
+    
+    orchestrator = AoTOrchestrator(config=AoTConfig(skills=skills, max_retries_per_skill=2, total_turn_limit=6))
     start = StartInput(
-        skill_vector=[0.5] * len(skills),
-        sigma2=[0.9] * len(skills),
+        skill_vector=[0.5, 0.5, 0.5],
+        sigma2=[0.9, 0.3, 0.2],
         past_attempts_per_skill={s: 0 for s in skills},
     )
 

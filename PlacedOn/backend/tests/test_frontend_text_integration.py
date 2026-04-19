@@ -81,8 +81,8 @@ def test_text_flow_frontend_endpoints_for_junior_ai_developer(monkeypatch) -> No
                 "session_id": "fe-text-1",
                 "question": first_payload["question"],
                 "answer": (
-                    "I start with a structured baseline prompt, test on representative prompts, then add constraints "
-                    "and examples to reduce variance while tracking output quality metrics."
+                    "I start with a structured baseline prompt using representative prompts. "
+                    "For example, I add constraints to balance trade-offs and reduce variance."
                 ),
             },
         )
