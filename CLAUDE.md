@@ -4,117 +4,107 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repository Is
 
-**PlacedOn** is an AI-powered hiring platform. The repo contains both product/business documentation AND active implementation code.
+**PlacedOn** is an AI-powered psychometric hiring platform built by Nishant Singh (solo founder). The system interviews candidates, extracts HCV (Human Capital Value) behavioral traits using SBERT embeddings and Kalman filtering, detects and blocks biased questions, and generates evidence-backed profiles for employers.
 
-**Active implementation lives in:**
-- `PlacedOn/backend/` — FastAPI server (Python), the core interview engine
-- `PlacedOn/interaction_layer/` — Real-time voice/session/turn orchestration layer
-- `PlacedOn/aot_layer/` — Atom-of-thought interview decomposition and judge loop
-- `PlacedOn/layer2/` — Lower-level evaluation and adapter runtime
-- `PlacedOn/layer3/` — Bias and integrity checks
-- `PlacedOn/layer5/` — Aggregation and rendering runtime
-- No active frontend is currently checked into the repo root code tree.
+**GitHub:** https://github.com/PlacedOn/Product-Research
 
-Documentation (strategy, specs, research, and reference material) lives across `PlacedOn-Research/product/`, `PlacedOn-Research/business/`, `PlacedOn-Research/research/`, `PlacedOn-Research/Markovian-Reasoning/`, `PlacedOn-Research/docs/`, `PlacedOn-Research/Inspo/`, `PlacedOn-Research/problems/`, `PlacedOn-Research/personas/`, and the top-level reference docs in `PlacedOn-Research/`.
+## Project Structure
+
+```
+PlacedOn/
+├── backend/           # FastAPI server — core interview engine
+│   ├── app/           # FastAPI app, WebSocket, session management
+│   │   ├── main.py         # Entry point
+│   │   ├── api_routes.py   # CSV ingestion, rating, JSONL export
+│   │   ├── trust_trigger.py # 5-minute WebSocket trust event
+│   │   └── ...
+│   ├── llm/           # LLM judge + question generator
+│   ├── pipeline/      # Planner, JD parser, conversation orchestrator
+│   ├── schemas/       # Pydantic models
+│   └── tests/         # Backend test suite
+├── layer2/            # Capability extraction (SBERT embeddings + adapter)
+├── layer3/            # Bias guard + behavioral integrity
+├── layer5/            # Profile aggregation + matching + rendering
+├── aot_layer/         # Atom-of-Thought interview orchestration
+├── interaction_layer/ # Real-time voice/session/turn management
+├── interview_system/  # Full-stack orchestrator linking all layers
+├── skill_taxonomy.py  # Central skill registry (behavioral + technical)
+├── train_judge.py     # Offline judge calibration pipeline
+└── training/          # Data adapters + evaluators
+```
 
 ## Development Commands
 
-### Backend (FastAPI)
+### Setup
+```bash
+cd /Users/nishantsingh/Documents/New\ project/product-research
+python3 -m pip install -r PlacedOn/backend/requirements.txt
+```
 
+### Run All Tests (54 tests, all should pass)
+```bash
+PYTHONPATH=PlacedOn:PlacedOn/backend python3 -m pytest PlacedOn/ -v \
+  --ignore=PlacedOn/aot_layer/tests/test_flow.py \
+  --ignore=PlacedOn/aot_layer/tests/test_judge.py \
+  --ignore=PlacedOn/backend/tests/test_generator.py \
+  --ignore=PlacedOn/backend/tests/test_integration.py \
+  --ignore=PlacedOn/backend/tests/test_interaction_router.py \
+  --ignore=PlacedOn/backend/tests/test_session.py \
+  --ignore=PlacedOn/backend/tests/test_websocket.py \
+  --ignore=PlacedOn/backend/tests/test_frontend_text_integration.py \
+  --ignore=PlacedOn/backend/tests/test_full_interviewer_junior_frontend.py
+```
+
+Note: Ignored tests require a running Ollama server or Redis instance.
+
+### Run Backend Server
 ```bash
 PYTHONPATH=PlacedOn uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+### Run Specific Layer Tests
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-python3 -m pip install -r PlacedOn/backend/requirements.txt
-
-# Start Redis (required)
-redis-server
-# or: docker run --rm -p 6379:6379 redis:7
-
-# Run all tests
-PYTHONPATH=PlacedOn python3 -m pytest PlacedOn/backend/tests -q
-
-# Run a single test file
-PYTHONPATH=PlacedOn python3 -m pytest PlacedOn/backend/tests/test_websocket.py -q
-
-# Manual WebSocket test client
-PYTHONPATH=PlacedOn python3 PlacedOn/backend/manual_ws_client.py --url http://127.0.0.1:8000 --interview-id demo-1
+PYTHONPATH=PlacedOn:PlacedOn/backend python3 -m pytest PlacedOn/layer2/tests/ -v
+PYTHONPATH=PlacedOn:PlacedOn/backend python3 -m pytest PlacedOn/layer3/tests/ -v
+PYTHONPATH=PlacedOn:PlacedOn/backend python3 -m pytest PlacedOn/backend/tests/test_api_routes.py -v
 ```
 
-Environment variables (all optional, have defaults):
-```
-REDIS_URL=redis://localhost:6379/0
-SESSION_TTL_SECONDS=1800
-STREAM_DELAY_SECONDS=0.05
-INITIAL_QUESTION="Tell me about a backend system you designed recently."
-```
+## Key Architecture Decisions
 
-## Code Architecture
+### Embedding Engine (CRITICAL)
+- **Uses:** `sentence-transformers all-MiniLM-L6-v2` (384-dim SBERT)
+- **File:** `PlacedOn/layer2/embedding.py`
+- **Loads once via `@lru_cache`**, runs on CPU, completely free
+- **DO NOT revert to blake2b/SHA256 hashing** — that was the original critical bug
 
-### Backend Layer (`PlacedOn/backend/`)
+### Skill Taxonomy
+- **Central registry:** `PlacedOn/skill_taxonomy.py`
+- 7 behavioral HCV blocks: `block_4_grit`, `block_5_resilience`, `block_6_social`, `block_6_leadership`, `block_8_ownership`, `block_8_curiosity`, `block_10_calibration`
+- 7 technical skills: `caching`, `system_design`, `db_design`, `backend`, `frontend`, `ui`, `performance`
+- `JD_SKILL_MAP` normalizes JD keywords → canonical skill IDs
 
-**Entry point:** `app/main.py` — FastAPI app with lifespan setup (Redis session manager, LiveInterviewRuntime).
+### API Endpoints
+- `POST /ingest/csv` — LinkedIn CSV work history upload
+- `POST /rating` — 90-day employer rating (green/yellow/red)
+- `POST /export/jsonl` — Training data pipeline
+- `GET /health` — Health check
+- `WS /ws/{interview_id}` — Interview WebSocket
+- `WS /interaction/ws/{session_id}` — Voice pipeline WebSocket
 
-**Two WebSocket endpoints** in `app/websocket_router.py` and `app/interaction_router.py`:
-- `/ws/{interview_id}` — Simple stateful text interview. Handles reconnection, idempotency via `message_id`, token streaming.
-- `/interaction/ws/{session_id}` — Full voice pipeline: receives audio chunks → STT → turn completion detection → backend processing → persona streaming + TTS audio frames.
+### Zero-Cost Stack
+- **Database:** Supabase (Postgres + pgvector, 500MB free)
+- **Hosting:** Vercel or Render (free tier)
+- **Embeddings:** sentence-transformers (local CPU, free)
+- **Redis:** Upstash (256MB free)
 
-**HTTP endpoints** in `app/interaction_router.py`:
-- `POST /generate-question` — Stateful question generation (intro phase → technical phase). Uses in-memory dict `_interview_pipeline_state` keyed by `session_id`.
-- `POST /evaluate-answer` — Scores answer, updates state with evaluation.
-- `POST /process-turn` — Used internally by interaction layer to advance interview state.
-- `GET/POST /tts/voices`, `/tts/speak` — Mac system TTS.
+## Testing
 
-**Pipeline** (`pipeline/`):
-- `conversation_orchestrator.py` — Generates intro question via Ollama (`llama3`).
-- `planner.py` — Decides next interview action (deepen/broaden/pivot/close).
-- `context_builder.py` — Builds structured context from candidate + job profiles.
-- `question_strategy.py` — Strategy selection logic.
+All test directories have `__init__.py` files to prevent pytest module conflicts.
+Current status: **54 tests passing** across all layers.
 
-**LLM layer** (`llm/`):
-- `ollama_client.py` — Calls local Ollama instance (default model: `llama3`).
-- `generator.py` — Generates interview questions given a plan and context.
-- `judge.py` — Evaluates candidate answers; returns score + missing concepts.
+## Important Notes
 
-**Session management** (`app/session_manager.py`) — Redis-backed, async, TTL-based. Key format: `interview:{interview_id}`.
-
-**State compression** (`app/state_compressor.py`) — Compresses state to ≤400 chars to keep LLM context bounded (O(1) complexity property of the Markov engine).
-
-**Schemas** (`schemas/`): `generator_schema.py` (CandidateProfile, JobProfile, question output), `judge_schema.py` (answer evaluation output).
-
-### Interaction Layer (`PlacedOn/interaction_layer/`)
-
-Sits above the backend. Handles real-time voice I/O, does NOT do reasoning. Components:
-- `voice/stt.py`, `voice/tts.py` — Currently mock implementations.
-- `communication/websocket_manager.py` — Connection lifecycle.
-- `session/session_manager.py` — Session timeout, silence detection, turn counting.
-- `turn/turn_manager.py` — Collects transcript, detects completion (final event / explicit stop / silence), submits to backend via `POST /process-turn`.
-- `persona/persona_engine.py` — Streams backend response tokens (no generation).
-- `monitoring/presence.py` — Camera/tab/latency presence snapshots.
-- `error_handling/recovery.py` — Silence and low-confidence recovery actions.
-
-### Frontend
-
-No active frontend is currently checked into the repo root code tree. If a frontend is added back later, document it here with the current checked-in path and commands.
-
-## Important Architectural Notes
-
-**Two parallel interview state systems exist:**
-1. `InterviewState` (Pydantic model in `app/models.py`) — persisted in Redis via `SessionManager`, used by `/ws/{interview_id}` and `/interaction/ws/{session_id}`.
-2. `_interview_pipeline_state` dict in `interaction_router.py` — in-memory only, used by `/generate-question` and `/evaluate-answer` endpoints. Lost on server restart.
-
-**LLM backend is Ollama (local), not OpenAI** — The current implementation calls a local Ollama instance with `llama3`. The product spec targets OpenAI GPT-4o-mini, but the implementation uses Ollama for development.
-
-**The interaction router imports from both `PlacedOn/backend/` and `PlacedOn/interaction_layer/`** using sys.path manipulation. The root of the repo must be in PYTHONPATH or the server must be run from the repo root.
-
-The `aot_layer/`, `layer2/`, `layer3/`, and `layer5/` packages are also part of the checked-in runtime tree and should be treated as live implementation modules when documenting or running the split repo.
-
-## Product Documentation (for context)
-
-- `PlacedOn-Research/IMPLEMENTATION-ROADMAP.md` — Phased build plan and build order
-- `PlacedOn-Research/Markovian-Reasoning/AoT-for-AI-Interviewer.md` — Markov engine design (O(1) state complexity, contraction loop)
-- `PlacedOn-Research/product/interviewer-model.md` — AI interviewer behavioral spec
-- `PlacedOn-Research/product/bias-safety.md` — ABLEIST 8-metric bias framework (integrated at every state contraction)
-- `PlacedOn-Research/product/architecture.md` — Target system design (Next.js + FastAPI + PostgreSQL + OpenAI)
+1. **PYTHONPATH must include both `PlacedOn` and `PlacedOn/backend`** for all imports to resolve
+2. The `skill_taxonomy.py` is imported as a top-level module from the `PlacedOn/` directory
+3. Supabase integration is stubbed with `# TODO` comments — wire when credentials are configured
+4. The trust trigger fires once per interview at the 5-minute mark via WebSocket
