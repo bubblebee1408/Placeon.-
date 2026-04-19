@@ -11,3 +11,4 @@ class AoTConfig(BaseModel):
     max_turns_per_skill: int = 4
     default_difficulty: str = "medium"
     total_turn_limit: int = 8
+    target_sigma2: float = 0.20  # True Markov stopping condition

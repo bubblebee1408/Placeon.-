@@ -58,6 +58,15 @@ class InterviewState(BaseModel):
     probes_per_skill: dict[str, int] = Field(default_factory=dict)
     retries_per_skill: dict[str, int] = Field(default_factory=dict)
 
+    def compress_to_markov_state(self) -> dict:
+        """Returns the pure Markov state (memoryless) for the current turn."""
+        return {
+            "skill_vector": self.skill_vector,
+            "sigma2": self.sigma2,
+            "current_skill": self.current_skill,
+            "current_difficulty": self.current_difficulty,
+        }
+
 
 class TurnLog(BaseModel):
     turn: int

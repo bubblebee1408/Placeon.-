@@ -18,10 +18,12 @@ async def _scripted_answers(_turn: int, _question: str, skill: str, mode: str) -
 
 def test_full_flow_transitions_probe_retry_move() -> None:
     orchestrator = AoTOrchestrator(config=AoTConfig(total_turn_limit=7, max_retries_per_skill=1))
+    from skill_taxonomy import DEFAULT_AOT_SKILLS
+    skills = DEFAULT_AOT_SKILLS
     start = StartInput(
-        skill_vector=[0.3, 0.4, 0.8],
-        sigma2=[0.95, 0.85, 0.2],
-        past_attempts_per_skill={"caching": 0, "concurrency": 0, "api_design": 0},
+        skill_vector=[0.3] * len(skills),
+        sigma2=[0.95] * len(skills),
+        past_attempts_per_skill={s: 0 for s in skills},
     )
 
     result = asyncio.run(orchestrator.run(start_input=start, answer_provider=_scripted_answers, max_turns=5))
@@ -38,10 +40,12 @@ def test_repeated_wrong_answers_force_move() -> None:
         return "no idea"
 
     orchestrator = AoTOrchestrator(config=AoTConfig(max_retries_per_skill=2, total_turn_limit=6))
+    from skill_taxonomy import DEFAULT_AOT_SKILLS
+    skills = DEFAULT_AOT_SKILLS
     start = StartInput(
-        skill_vector=[0.5, 0.5, 0.5],
-        sigma2=[0.9, 0.3, 0.2],
-        past_attempts_per_skill={"caching": 0, "concurrency": 0, "api_design": 0},
+        skill_vector=[0.5] * len(skills),
+        sigma2=[0.9] * len(skills),
+        past_attempts_per_skill={s: 0 for s in skills},
     )
 
     result = asyncio.run(orchestrator.run(start_input=start, answer_provider=always_wrong, max_turns=4))

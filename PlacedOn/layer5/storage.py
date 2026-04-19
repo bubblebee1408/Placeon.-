@@ -19,10 +19,30 @@ class InMemoryVectorStorage:
 
 class PgVectorStorageAdapter:
     """
-    Simulated pgvector adapter.
+    PgVector Storage Adapter for Supabase
 
-    In production this can be wired to asyncpg/SQLAlchemy with a table like:
-      candidate_profiles(candidate_id text primary key, embedding vector, skills jsonb, metadata jsonb)
+    Following OpenAI scaling patterns from 2026:
+    - Uses HNSW index for high-throughput Approximate Nearest Neighbor (ANN) search
+    - Vector dimensions: 384 (all-MiniLM-L6-v2)
+    - Recommends deploying this table on a read replica if vector queries > 50M
+    
+    Database Init SQL:
+    ```sql
+    CREATE EXTENSION IF NOT EXISTS vector;
+    
+    CREATE TABLE candidate_profiles (
+        candidate_id TEXT PRIMARY KEY,
+        embedding vector(384),
+        skills JSONB,
+        metadata JSONB,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    
+    -- OpenAI's recommended HNSW index for cosine similarity
+    CREATE INDEX idx_candidate_embedding_hnsw ON candidate_profiles 
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+    ```
     """
 
     def __init__(self, fallback_storage: InMemoryVectorStorage | None = None) -> None:

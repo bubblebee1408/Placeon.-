@@ -26,18 +26,29 @@ class AggregationEngine:
                 raise AggregationError("Embedding dimensions are inconsistent across turns")
 
         n_turns = len(turns)
-        weighted_sum = [0.0] * dims
-        total_weight = 0.0
-
+        
+        # Determine attention logits based on confidence and depth (Attention Residuals inspired)
+        logits = []
         for idx, turn in enumerate(turns):
-            recency = (idx + 1) / n_turns
-            weight = max(turn.confidence * recency, 1e-6)
-            total_weight += weight
+            depth_factor = (idx + 1) / n_turns
+            # Content-dependent logit: confidence is our primary content score, depth adds positional bias
+            logit = turn.confidence + (depth_factor * 0.5)
+            logits.append(logit)
+            
+        # Softmax over logits to get learned-style aggregation weights
+        max_logit = max(logits)
+        exp_logits = [math.exp(l - max_logit) for l in logits]
+        sum_exp = sum(exp_logits)
+        weights = [e / sum_exp for e in exp_logits]
+
+        weighted_sum = [0.0] * dims
+        for idx, turn in enumerate(turns):
+            weight = weights[idx]
             for dim_idx, value in enumerate(turn.embedding):
                 weighted_sum[dim_idx] += value * weight
 
-        averaged = [value / total_weight for value in weighted_sum]
-        return self._l2_normalize(averaged)
+        # Standard L2 normalize after attention-weighted sum
+        return self._l2_normalize(weighted_sum)
 
     def _aggregate_skills(self, turns: list[InterviewTurn]) -> dict[str, SkillAggregate]:
         all_skills: set[str] = set()
@@ -48,31 +59,40 @@ class AggregationEngine:
         n_turns = len(turns)
 
         for skill in sorted(all_skills):
+            turns_with_skill = [(idx, t) for idx, t in enumerate(turns) if t.skills.get(skill) is not None]
+            if not turns_with_skill:
+                continue
+
+            # Compute attention logits for this specific skill across depth
+            logits = []
+            for idx, turn in turns_with_skill:
+                signal = turn.skills[skill]
+                depth_factor = (idx + 1) / n_turns
+                logit = signal.confidence + (depth_factor * 0.5)
+                logits.append(logit)
+
+            max_logit = max(logits)
+            exp_logits = [math.exp(l - max_logit) for l in logits]
+            sum_exp = sum(exp_logits)
+            weights = [e / sum_exp for e in exp_logits]
+
             weighted_scores = 0.0
-            weight_sum = 0.0
             confidences: list[float] = []
             observed_scores: list[float] = []
             evidence_bank: list[str] = []
 
-            for idx, turn in enumerate(turns):
-                signal = turn.skills.get(skill)
-                if signal is None:
-                    continue
-
-                recency = (idx + 1) / n_turns
-                weight = max(signal.confidence * recency, 1e-6)
+            for arr_idx, (idx, turn) in enumerate(turns_with_skill):
+                signal = turn.skills[skill]
+                weight = weights[arr_idx]
+                
                 weighted_scores += signal.score * weight
-                weight_sum += weight
                 confidences.append(signal.confidence)
                 observed_scores.append(signal.score)
                 for item in signal.evidence:
                     if item not in evidence_bank:
                         evidence_bank.append(item)
 
-            if weight_sum == 0:
-                continue
-
-            score = weighted_scores / weight_sum
+            score = weighted_scores
             uncertainty = self._compute_uncertainty(
                 confidences,
                 observed_scores,
