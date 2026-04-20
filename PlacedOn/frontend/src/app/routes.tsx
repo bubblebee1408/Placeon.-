@@ -7,6 +7,7 @@ import { ApplicationsScreen } from "./components/ApplicationsScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { LandingPage } from "./components/LandingPage";
+import { Dashboard } from "./components/Dashboard";
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
   {
     path: "/interview",
     Component: InterviewRoom,
+  },
+  {
+    path: "/analytics",
+    Component: Dashboard,
   },
   {
     path: "*",

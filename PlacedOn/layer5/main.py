@@ -10,6 +10,7 @@ from layer5.matcher import FitMatcher
 from layer5.models import FitInput, InterviewTurn, RenderInput, SkillTurnSignal
 from layer5.renderer import ProfileRenderer
 from layer5.storage import CandidateRepository
+from layer5.scorer import ScoringEngine
 
 
 def _sample_turns() -> list[InterviewTurn]:
@@ -89,6 +90,11 @@ async def run_demo() -> None:
         )
     )
     print(f"[Matcher] Fit score: {fit.fit_score} ({fit.interpretation})")
+
+    # NEW: Predictive Scoring using KAN technology
+    scorer = ScoringEngine()
+    prediction = scorer.predict(candidate.embedding)
+    print(f"[Scorer] KAN Performance Prediction: {prediction:.4f}")
 
     profile = await renderer.render(
         RenderInput(candidate_id=candidate.candidate_id, skills=candidate.skills),
