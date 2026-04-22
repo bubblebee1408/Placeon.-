@@ -10,8 +10,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.coverage
+.coverage.*
 
 PlacedOn-Research/docs/*
 acedOn/frontend/node_modules/
 PlacedOn/frontend/.next/
 scripts/
+PlacedOn/frontend/dist/

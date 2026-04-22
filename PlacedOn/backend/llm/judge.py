@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from typing import Dict, Optional, Union
 
@@ -7,6 +8,7 @@ from backend.schemas.judge_schema import JudgeInput, JudgeOutput
 from backend.utils.json_utils import extract_json
 
 _JUDGE_MODEL = "gemma3:1b"
+_LOGGER = logging.getLogger(__name__)
 
 _WEAK_CONFIDENCE_MAX = 0.6
 _MEDIUM_CONFIDENCE_MIN = 0.5
@@ -171,8 +173,8 @@ def _calibrate_output(evaluation: JudgeOutput, answer: str) -> JudgeOutput:
     signals = _analyze_answer(answer)
     score = float(evaluation.score)
     confidence = float(evaluation.confidence)
-    
-    print(f"[DEBUG] Raw Score: {score}, Tokens: {signals['token_count']}")
+
+    _LOGGER.debug("Judge raw score=%s tokens=%s", score, signals["token_count"])
 
     weaknesses = list(evaluation.weaknesses)
     missing = list(evaluation.missing_concepts)
@@ -184,7 +186,7 @@ def _calibrate_output(evaluation: JudgeOutput, answer: str) -> JudgeOutput:
             score = min(score, 0.25)
         else:
             score = min(max(score, 0.25), 0.35)
-        print(f"[DEBUG] Penalty (Very Short): {old_score} -> {score}")
+        _LOGGER.debug("Judge penalty very_short: %s -> %s", old_score, score)
         weaknesses.append("Answer is too short to demonstrate substantive understanding.")
     elif bool(signals["keyword_only"]):
         old_score = score
@@ -194,22 +196,22 @@ def _calibrate_output(evaluation: JudgeOutput, answer: str) -> JudgeOutput:
         else:
             score = min(max(score, 0.25), 0.35)
             weaknesses.append("Generic statement lacks concrete evidence, mechanism, or reasoning.")
-        print(f"[DEBUG] Penalty (Keyword Only): {old_score} -> {score}")
+        _LOGGER.debug("Judge penalty keyword_only: %s -> %s", old_score, score)
     elif bool(signals["vague"]):
         score = min(score, 0.50)
-        print(f"[DEBUG] Penalty (Vague): capped at 0.50")
+        _LOGGER.debug("Judge penalty vague: capped at 0.50")
 
     # Penalize purely shallow buzzword statements
     if bool(signals["has_shallow"]) and not bool(signals["has_mechanism"]) and not bool(signals["has_example"]):
         old_score = score
         score = min(score, 0.45)
-        print(f"[DEBUG] Penalty (Shallow/Buzzword): {old_score} -> {score}")
+        _LOGGER.debug("Judge penalty shallow_buzzword: %s -> %s", old_score, score)
         weaknesses.append("Uses generic buzzwords without providing concrete evidence or mechanisms.")
 
     # Mechanism-bearing answers should not collapse into shallow bands even if model is overly strict.
     if (bool(signals["has_mechanism"]) or bool(signals["has_example"])) and int(signals["token_count"]) >= 6 and score < 0.4:
         score = 0.45
-        print(f"[DEBUG] Rescue (Has Mechanism): raised to 0.45")
+        _LOGGER.debug("Judge rescue mechanism-bearing answer raised to 0.45")
 
     # Reward depth indicators with small nudges to avoid brittle rubric-only behavior.
     if bool(signals["has_explanation"]) and bool(signals["has_mechanism"]):
@@ -222,7 +224,7 @@ def _calibrate_output(evaluation: JudgeOutput, answer: str) -> JudgeOutput:
         score += 0.03
 
     score = _clip(score)
-    print(f"[DEBUG] Final Calibrated Score: {score}")
+    _LOGGER.debug("Judge final calibrated score=%s", score)
 
     depth = _depth_from_score(score)
     clarity = _clarity_from_signals(signals)

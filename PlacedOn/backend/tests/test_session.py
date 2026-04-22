@@ -79,3 +79,22 @@ def test_ttl_expiry_behavior() -> None:
 
     time.sleep(1.2)
     assert asyncio.run(manager.get_state("session-expire")) is None
+
+
+def test_memory_fallback_also_expires_state() -> None:
+    manager = SessionManager(redis_client=None, ttl_seconds=1)
+
+    state = InterviewState(
+        interview_id="memory-expire",
+        turn=1,
+        last_question="Q1",
+        last_answer=None,
+    )
+
+    asyncio.run(manager.set_state(state))
+    ttl = asyncio.run(manager.ttl("memory-expire"))
+    assert 0 <= ttl <= 1
+
+    time.sleep(1.2)
+    assert asyncio.run(manager.get_state("memory-expire")) is None
+    assert asyncio.run(manager.ttl("memory-expire")) == -2
