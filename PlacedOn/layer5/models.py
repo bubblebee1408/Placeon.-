@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class SkillTurnSignal(BaseModel):
     score: float
     confidence: float = Field(ge=0.0, le=1.0)
-    evidence: list[str] = Field(default_factory=list)
+    evidence: List[str] = Field(default_factory=list)
 
 
 class AxisSignal(BaseModel):
@@ -18,41 +18,41 @@ class AxisSignal(BaseModel):
 class InterviewTurn(BaseModel):
     turn_index: int
     confidence: float = Field(ge=0.0, le=1.0)
-    embedding: list[float]
-    skills: dict[str, SkillTurnSignal] = Field(default_factory=dict)
-    axes: dict[str, AxisSignal] = Field(default_factory=dict)
+    embedding: List[float]
+    skills: Dict[str, SkillTurnSignal] = Field(default_factory=dict)
+    axes: Dict[str, AxisSignal] = Field(default_factory=dict)
 
 
 class SkillAggregate(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
     uncertainty: float = Field(ge=0.0, le=1.0)
-    evidence: list[str] = Field(default_factory=list)
+    evidence: List[str] = Field(default_factory=list)
 
 
 class AxisAggregate(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
     uncertainty: float = Field(ge=0.0, le=1.0)
-    reasoning_summary: list[str] = Field(default_factory=list)
+    reasoning_summary: List[str] = Field(default_factory=list)
 
 
 class CandidateAggregate(BaseModel):
-    embedding: list[float]
-    skills: dict[str, SkillAggregate] = Field(default_factory=dict)
-    axes: dict[str, AxisAggregate] = Field(default_factory=dict)
+    embedding: List[float]
+    skills: Dict[str, SkillAggregate] = Field(default_factory=dict)
+    axes: Dict[str, AxisAggregate] = Field(default_factory=dict)
 
 
 class CandidateState(BaseModel):
     candidate_id: str
-    embedding: list[float]
-    skills: dict[str, SkillAggregate]
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    embedding: List[float]
+    skills: Dict[str, SkillAggregate]
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class FitInput(BaseModel):
-    candidate_embedding: list[float]
-    role_vector: list[float]
-    preference_vector: list[float] | None = None
+    candidate_embedding: List[float]
+    role_vector: List[float]
+    preference_vector: Optional[List[float]] = None
 
 
 class FitResult(BaseModel):
@@ -63,15 +63,15 @@ class FitResult(BaseModel):
 
 class RenderInput(BaseModel):
     candidate_id: str
-    skills: dict[str, SkillAggregate]
+    skills: Dict[str, SkillAggregate]
 
 
 class Trait(BaseModel):
     title: str
-    evidence: list[str]
+    evidence: List[str]
 
 
 class ProfileOutput(BaseModel):
-    traits: list[Trait]
+    traits: List[Trait]
     summary: str
     confidence_notes: str

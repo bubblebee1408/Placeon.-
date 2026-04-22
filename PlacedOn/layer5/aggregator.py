@@ -1,4 +1,5 @@
 import math
+from typing import Dict, List
 
 from layer5.models import AxisAggregate, CandidateAggregate, InterviewTurn, SkillAggregate
 
@@ -8,7 +9,7 @@ class AggregationError(ValueError):
 
 
 class AggregationEngine:
-    async def aggregate(self, turns: list[InterviewTurn]) -> CandidateAggregate:
+    async def aggregate(self, turns: List[InterviewTurn]) -> CandidateAggregate:
         if not turns:
             raise AggregationError("Cannot aggregate empty interview turns")
 
@@ -17,7 +18,7 @@ class AggregationEngine:
         axes = self._aggregate_axes(turns)
         return CandidateAggregate(embedding=embedding, skills=skills, axes=axes)
 
-    def _aggregate_embedding(self, turns: list[InterviewTurn]) -> list[float]:
+    def _aggregate_embedding(self, turns: List[InterviewTurn]) -> List[float]:
         dims = len(turns[0].embedding)
         if dims == 0:
             raise AggregationError("Embedding cannot be empty")
@@ -51,7 +52,7 @@ class AggregationEngine:
         # Standard L2 normalize after attention-weighted sum
         return self._l2_normalize(weighted_sum)
 
-    def _aggregate_skills(self, turns: list[InterviewTurn]) -> dict[str, SkillAggregate]:
+    def _aggregate_skills(self, turns: List[InterviewTurn]) -> Dict[str, SkillAggregate]:
         all_skills: set[str] = set()
         for turn in turns:
             all_skills.update(turn.skills.keys())
@@ -77,9 +78,9 @@ class AggregationEngine:
             sum_exp = sum(exp_logits)
             weights = [e / sum_exp for e in exp_logits]
 
-            observed_scores: list[float] = []
-            confidences: list[float] = []
-            evidence_bank: list[str] = []
+            observed_scores: List[float] = []
+            confidences: List[float] = []
+            evidence_bank: List[str] = []
             weighted_score = 0.0
 
             for arr_idx, (_idx, turn) in enumerate(turns_with_skill):
@@ -99,6 +100,8 @@ class AggregationEngine:
                 total_turns=n_turns,
             )
 
+            weighted_score = self._apply_latent_correlations(skill, weighted_score, results)
+
             results[skill] = SkillAggregate(
                 score=round(max(0.0, min(weighted_score, 1.0)), 4),
                 uncertainty=round(max(0.0, min(uncertainty, 1.0)), 4),
@@ -107,10 +110,28 @@ class AggregationEngine:
 
         return results
 
+    def _apply_latent_correlations(self, skill: str, current_score: float, results: Dict[str, SkillAggregate]) -> float:
+        """
+        Applies non-linear skill-to-skill interference discovered during high-fidelity simulations.
+        Inspired by cross-domain latent entanglement.
+        """
+        from layer2.config import Layer2Config
+        config = Layer2Config()
+        
+        correlations = config.latent_correlations.get(skill, {})
+        for dependent_skill, coefficient in correlations.items():
+            if dependent_skill in results:
+                # Calculate interference residual
+                residual = results[dependent_skill].score * coefficient
+                # Apply scaled correlation offset
+                current_score += (residual * 0.15)
+        
+        return current_score
+
     def _compute_uncertainty(
         self,
-        confidences: list[float],
-        scores: list[float],
+        confidences: List[float],
+        scores: List[float],
         observed_count: int,
         total_turns: int,
     ) -> float:
@@ -131,12 +152,12 @@ class AggregationEngine:
 
         return max(0.05, min(base_uncertainty, 1.0))
 
-    def _aggregate_axes(self, turns: list[InterviewTurn]) -> dict[str, AxisAggregate]:
+    def _aggregate_axes(self, turns: List[InterviewTurn]) -> Dict[str, AxisAggregate]:
         all_axis_names: set[str] = set()
         for turn in turns:
             all_axis_names.update(turn.axes.keys())
 
-        results: dict[str, AxisAggregate] = {}
+        results: Dict[str, AxisAggregate] = {}
         n_turns = len(turns)
 
         for axis in sorted(all_axis_names):
@@ -157,9 +178,9 @@ class AggregationEngine:
             weights = [e / sum_exp for e in exp_logits]
 
             weighted_score = 0.0
-            confidences: list[float] = []
-            scores: list[float] = []
-            reasoning_bank: list[str] = []
+            confidences: List[float] = []
+            scores: List[float] = []
+            reasoning_bank: List[str] = []
 
             for arr_idx, (idx, turn) in enumerate(turns_with_axis):
                 signal = turn.axes[axis]
@@ -186,7 +207,7 @@ class AggregationEngine:
 
         return results
 
-    def _l2_normalize(self, vector: list[float]) -> list[float]:
+    def _l2_normalize(self, vector: List[float]) -> List[float]:
         norm = math.sqrt(sum(value * value for value in vector))
         if norm <= 0:
             raise AggregationError("Cannot normalize zero vector")
