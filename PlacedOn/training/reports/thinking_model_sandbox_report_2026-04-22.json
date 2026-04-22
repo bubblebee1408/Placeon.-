@@ -1,0 +1,117 @@
+{
+  "config": {
+    "episodes": 12,
+    "rounds": 3,
+    "max_turns": 6,
+    "seed": 42,
+    "skills": [
+      "system_design",
+      "caching",
+      "backend",
+      "block_10_calibration"
+    ]
+  },
+  "summary": {
+    "final_avg_reward": 0.6934,
+    "final_avg_mae": 0.2716,
+    "weakest_scenarios": [
+      {
+        "scenario": "tradeoff_architect",
+        "avg_reward": 0.5722,
+        "avg_mae": 0.3678
+      },
+      {
+        "scenario": "recovering_builder",
+        "avg_reward": 0.7105,
+        "avg_mae": 0.3295
+      },
+      {
+        "scenario": "panic_under_ambiguity",
+        "avg_reward": 0.7555,
+        "avg_mae": 0.1845
+      }
+    ],
+    "recommendation": "Keep the sandbox separate from the production brain. Use the weakest scenarios to tune controller thresholds and prompt templates before any integration work."
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "episodes": 4,
+      "avg_reward": 0.6673,
+      "avg_mae": 0.3101,
+      "weights": {
+        "tradeoff_architect": 0.263649,
+        "buzzword_operator": 0.223849,
+        "recovering_builder": 0.232691,
+        "panic_under_ambiguity": 0.279811
+      },
+      "scenario_reward": {
+        "recovering_builder": 0.7105,
+        "tradeoff_architect": 0.5722,
+        "buzzword_operator": 0.8145
+      },
+      "scenario_mae": {
+        "recovering_builder": 0.3295,
+        "tradeoff_architect": 0.3678,
+        "buzzword_operator": 0.1755
+      },
+      "actions": {
+        "move": 14,
+        "probe": 3,
+        "retry": 7
+      }
+    },
+    {
+      "round": 2,
+      "episodes": 4,
+      "avg_reward": 0.6984,
+      "avg_mae": 0.2666,
+      "weights": {
+        "tradeoff_architect": 0.279242,
+        "buzzword_operator": 0.251622,
+        "recovering_builder": 0.217514,
+        "panic_under_ambiguity": 0.251622
+      },
+      "scenario_reward": {
+        "panic_under_ambiguity": 0.7555,
+        "recovering_builder": 0.7105,
+        "tradeoff_architect": 0.5722
+      },
+      "scenario_mae": {
+        "panic_under_ambiguity": 0.1845,
+        "recovering_builder": 0.3295,
+        "tradeoff_architect": 0.3678
+      },
+      "actions": {
+        "move": 13,
+        "probe": 2,
+        "retry": 9
+      }
+    },
+    {
+      "round": 3,
+      "episodes": 4,
+      "avg_reward": 0.6934,
+      "avg_mae": 0.2716,
+      "weights": {
+        "tradeoff_architect": 0.281842,
+        "buzzword_operator": 0.215627,
+        "recovering_builder": 0.232997,
+        "panic_under_ambiguity": 0.269533
+      },
+      "scenario_reward": {
+        "buzzword_operator": 0.8145,
+        "tradeoff_architect": 0.5722
+      },
+      "scenario_mae": {
+        "buzzword_operator": 0.1755,
+        "tradeoff_architect": 0.3678
+      },
+      "actions": {
+        "move": 14,
+        "probe": 2,
+        "retry": 8
+      }
+    }
+  ]
+}

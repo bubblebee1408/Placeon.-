@@ -1,0 +1,97 @@
+{
+  "config": {
+    "simulated_minutes": 12,
+    "interviews_per_minute": 2,
+    "total_interviews": 24,
+    "rounds": 4,
+    "max_turns": 5,
+    "seed": 42
+  },
+  "summary": {
+    "final_holdout_mae": 0.091,
+    "initial_pre_train_mae": 0.1973,
+    "final_pre_train_mae": 0.1281,
+    "patch_recommendations": [
+      "Analysis: The model is rewarding 'Buzzword' answers because they use markers like 'specifically' \n        without actually citing a mechanism. \n        Patch: Update `_calibrate_output` in `backend/llm/judge.py` to hard-cap scores at 0.35 \n        if `has_shallow` is true, unless `has_mechanism` is ALSO true with high token count."
+    ]
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "interviews": 6,
+      "batch_pre_train_mae": 0.1973,
+      "holdout_mae": null,
+      "sampling_weights": {
+        "buzzword_king": 0.27066,
+        "balanced_operator": 0.238776,
+        "deep_specialist": 0.255662,
+        "junior_generalist": 0.234903
+      },
+      "mistake_count": 6,
+      "archetype_error": {
+        "deep_specialist": 0.287,
+        "buzzword_king": 0.1625,
+        "junior_generalist": 0.0825,
+        "balanced_operator": 0.202
+      }
+    },
+    {
+      "round": 2,
+      "interviews": 6,
+      "batch_pre_train_mae": 0.1706,
+      "holdout_mae": 0.1398,
+      "sampling_weights": {
+        "buzzword_king": 0.259037,
+        "balanced_operator": 0.228903,
+        "deep_specialist": 0.262422,
+        "junior_generalist": 0.249639
+      },
+      "mistake_count": 5,
+      "archetype_error": {
+        "junior_generalist": 0.0825,
+        "deep_specialist": 0.287,
+        "balanced_operator": 0.202
+      }
+    },
+    {
+      "round": 3,
+      "interviews": 6,
+      "batch_pre_train_mae": 0.1464,
+      "holdout_mae": 0.1157,
+      "sampling_weights": {
+        "buzzword_king": 0.274661,
+        "balanced_operator": 0.222098,
+        "deep_specialist": 0.222995,
+        "junior_generalist": 0.280246
+      },
+      "mistake_count": 6,
+      "archetype_error": {
+        "junior_generalist": 0.1884,
+        "deep_specialist": 0.051,
+        "buzzword_king": 0.2114
+      }
+    },
+    {
+      "round": 4,
+      "interviews": 6,
+      "batch_pre_train_mae": 0.1281,
+      "holdout_mae": 0.091,
+      "sampling_weights": {
+        "buzzword_king": 0.327401,
+        "balanced_operator": 0.186293,
+        "deep_specialist": 0.219155,
+        "junior_generalist": 0.267151
+      },
+      "mistake_count": 7,
+      "archetype_error": {
+        "junior_generalist": 0.064,
+        "buzzword_king": 0.2055,
+        "balanced_operator": 0.0242
+      }
+    }
+  ],
+  "artifacts": {
+    "model_path": "/tmp/placedon_simulation_room_model.pkl",
+    "log_path": "/tmp/placedon_simulation_room_log.jsonl"
+  }
+}
