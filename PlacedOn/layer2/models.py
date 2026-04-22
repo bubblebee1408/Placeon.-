@@ -1,3 +1,4 @@
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -7,8 +8,8 @@ class SkillState(BaseModel):
 
 
 class AdapterOutput(BaseModel):
-    skills: dict[str, SkillState]
-    embedding: list[float]
+    skills: Dict[str, SkillState]
+    embedding: List[float]
     confidence: float = Field(ge=0.0, le=1.0)
     structural_score: float = Field(ge=0.0, le=1.0)
 
@@ -28,13 +29,13 @@ class BehavioralSignals(BaseModel):
 
 
 class Layer2Output(BaseModel):
-    skills: dict[str, SkillState]
-    embedding: list[float]
+    skills: Dict[str, SkillState]
+    embedding: List[float]
     behavioral_signals: BehavioralSignals
-    code_analysis: CodeAnalysis | None = None
+    code_analysis: Optional[CodeAnalysis] = None
 
 
 class TurnAssessment(BaseModel):
     text: str
     adapter_output: AdapterOutput
-    code_analysis: CodeAnalysis | None = None
+    code_analysis: Optional[CodeAnalysis] = None

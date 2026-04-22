@@ -1,3 +1,4 @@
+from typing import Dict, List, Optional
 import re
 
 from layer2.config import Layer2Config
@@ -9,9 +10,9 @@ _SIGNAL_TERMS = signal_terms()
 
 
 class CapabilityAdapter:
-    def __init__(self, config: Layer2Config | None = None) -> None:
+    def __init__(self, config: Optional[Layer2Config] = None) -> None:
         self._config = config or Layer2Config()
-        self._state: dict[str, SkillState] = {
+        self._state: Dict[str, SkillState] = {
             skill: SkillState(
                 score=self._config.base_score,
                 uncertainty=self._config.base_uncertainty,
@@ -24,7 +25,7 @@ class CapabilityAdapter:
         confidence = self._confidence(text)
         structural = self._structural_score(text)
 
-        updated: dict[str, SkillState] = {}
+        updated: Dict[str, SkillState] = {}
         for skill in self._config.tracked_skills:
             observed = await self._observed_skill_score(text=text, embedding=embedding, skill=skill)
             current = self._state[skill]
@@ -39,7 +40,7 @@ class CapabilityAdapter:
             structural_score=structural,
         )
 
-    async def _observed_skill_score(self, text: str, embedding: list[float], skill: str) -> float:
+    async def _observed_skill_score(self, text: str, embedding: List[float], skill: str) -> float:
         prototype = await embed_text(self._skill_prompt(skill))
         semantic = (cosine_similarity(embedding, prototype) + 1.0) / 2.0
         keyword_hits = self._keyword_hits(text, skill)
