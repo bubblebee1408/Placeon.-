@@ -116,3 +116,171 @@ Companies pay for discovery, not just verification. The shared profile proves th
 | Link to full profile | Application pipeline |
 
 The shareable profile is not a substitute for the platform. It is proof-of-concept that drives companies to the platform. Every share is a lead.
+
+---
+
+## How The Shareable Profile Is Produced
+
+The profile should not be a generic marketing page generated from a loose summary prompt.
+It should be produced from the same structured interview state that powers matching and employer review.
+
+### Internal source of truth
+
+Every completed interview should yield:
+- 16-dimension scores
+- 4 bucket scores
+- confidence levels
+- evidence excerpts
+- integrity/trust notes
+- role-fit snapshot
+
+This means the shareable profile is an **output view of the thinking model**, not a separate product.
+
+### Public card generation rules
+
+The public card should be generated from:
+- the highest-confidence strengths
+- the verified role category
+- the verification date
+- a single plain-language summary line
+
+It should never expose:
+- raw star values for all dimensions
+- low-confidence judgments without context
+- contradiction or integrity flags
+- precise employer fit scores
+
+The public profile must feel strong, but it must not leak the premium assessment layer.
+
+---
+
+## Recommended Public Card Structure
+
+### Above the fold
+- Candidate name
+- Target role
+- "Verified by PlacedOn" badge
+- Date of last verified interview
+- Short summary sentence
+
+### Strength snapshot
+- Top 3 strengths only
+- Display as labeled badges, not full diagnostic scores
+
+Examples:
+- Strong ownership
+- Clear technical communication
+- Learns quickly
+
+### Readiness panel
+- Experience band
+- Preferred work style
+- Best-fit team environment
+
+These are useful to employers while still being too shallow to replace the full platform.
+
+### CTA block
+- "View Full Verified Profile"
+- "Request Second-Round Interview"
+- "Hire Through PlacedOn"
+
+The share link should always convert curiosity into platform actions.
+
+---
+
+## Recommended Full Company Profile Structure
+
+Once a company account is created, the fuller profile should unlock in layers.
+
+### Layer 1 — Quick scan
+- overall rating
+- bucket ratings
+- confidence band
+- fit summary
+
+### Layer 2 — Diagnostic detail
+- 16 dimensions with score + confidence
+- strongest evidence quotes
+- under-evidenced areas
+- recommended second-round focus
+
+### Layer 3 — Hiring workflow
+- save / shortlist / reject
+- request second-round AI interview
+- request company-custom round
+- candidate opt-in contact unlock
+
+This lets the shareable link function as acquisition, while the account experience functions as the real product.
+
+---
+
+## Confidence and Freshness Rules
+
+The shareable profile should visibly communicate:
+- **freshness**: when the interview happened
+- **confidence**: whether this is a strong verified profile or still developing
+
+### Freshness recommendation
+- public links expire after 90 days unless revalidated
+- companies see freshness warnings for stale profiles
+
+### Confidence recommendation
+- public card only shows polished strengths above a confidence threshold
+- low-confidence traits remain hidden from public view
+- company accounts can see where uncertainty remains
+
+This protects candidates from being unfairly defined by early or weak evidence.
+
+---
+
+## Candidate Trust Rules
+
+The shareable profile only works if candidates feel it represents them fairly.
+
+Recommended guardrails:
+- candidate sees profile before sharing
+- candidate can add short context note
+- candidate can hide profile from public view
+- candidate can revoke a share link
+- candidate can request re-interview after a cooldown
+
+This matters because the shareable profile is part credential, part identity surface.
+
+---
+
+## Revenue Protection Rules
+
+The shareable profile should create leads, not leak value.
+
+### Keep free
+- verification badge
+- public strengths snapshot
+- one-line summary
+- freshness signal
+
+### Keep paid / gated
+- full diagnostic report
+- evidence ledger
+- dimension breakdown
+- fit decomposition
+- second-round orchestration
+- hiring workflow
+
+The rule is simple:
+
+**The public link should prove value.  
+The company account should deliver value.**
+
+---
+
+## Strategic Role in the Product
+
+The shareable profile is not just a candidate feature.
+It plays four jobs at once:
+
+1. candidate credential
+2. employer acquisition channel
+3. proof that PlacedOn assessments are tangible
+4. bridge from interview intelligence to hiring workflow
+
+That makes it one of the highest-leverage features in the product.
