@@ -65,7 +65,7 @@ _TOOL_MARKERS = (
 
 def build_judge_prompt(question: str, answer: str, prompt_template: Optional[str] = None) -> str:
     if prompt_template:
-        return prompt_template.format(question=question, answer=answer)
+        return prompt_template.replace("{question}", question).replace("{answer}", answer)
 
     return f"""
 Evaluate the interview answer strictly.

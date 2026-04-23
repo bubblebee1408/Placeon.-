@@ -29,8 +29,20 @@ class CapabilityAdapter:
         for skill in self._config.tracked_skills:
             observed = await self._observed_skill_score(text=text, embedding=embedding, skill=skill)
             current = self._state[skill]
-            next_state = self._update_skill(current=current, observed_score=observed, confidence=confidence)
-            updated[skill] = next_state
+
+            # Active-learning idle inflation: grow uncertainty for skills
+            # whose prototype is far from the current answer, so the sensing
+            # engine eventually re-probes them.
+            relevance = cosine_similarity(embedding, await embed_text(self._skill_prompt(skill)))
+            idle_penalty = 0.005 if relevance < 0.3 else 0.0
+
+            next_state = self._update_skill(
+                current=current,
+                observed_score=observed,
+                confidence=confidence,
+            )
+            inflated = min(1.0, next_state.uncertainty + idle_penalty)
+            updated[skill] = SkillState(score=next_state.score, uncertainty=round(inflated, 4))
 
         self._state = updated
         return AdapterOutput(
@@ -39,6 +51,19 @@ class CapabilityAdapter:
             confidence=confidence,
             structural_score=structural,
         )
+
+    def get_highest_uncertainty_skill(self) -> str:
+        """
+        Identifies the skill that currently requires the most investigation.
+        Returns the skill with the highest uncertainty score (P).
+        """
+        if not self._state:
+            return self._config.tracked_skills[0]
+            
+        return max(self._state, key=lambda k: self._state[k].uncertainty)
+
+    def get_skill_score(self, skill: str) -> float:
+        return self._state[skill].score
 
     async def _observed_skill_score(self, text: str, embedding: List[float], skill: str) -> float:
         prototype = await embed_text(self._skill_prompt(skill))
