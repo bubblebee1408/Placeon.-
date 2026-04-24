@@ -7,15 +7,19 @@ from backend.schemas.generator_schema import GeneratorInput, PlanOutput, Questio
 from backend.utils.json_utils import extract_json
 from skill_taxonomy import display_skill, is_behavioral_skill
 
-_GENERATOR_MODEL = "gemma3:1b"
+_GENERATOR_MODEL = "llama3"
 
 
 def _default_question_type(action: str, skill: str) -> str:
+    if skill.startswith("hr_"):
+        return "hr_scenario"
     if is_behavioral_skill(skill):
         return "behavioral"
     if action == "challenge":
         return "system_design"
     if action == "help":
+        return "conceptual"
+    if action == "assess":
         return "conceptual"
     return "behavioral"
 
@@ -69,6 +73,31 @@ def _looks_like_interviewer_question(text: str) -> bool:
 
 def _fallback_prompt_variants(action: str, skill: str) -> list[str]:
     label = display_skill(skill)
+    if skill.startswith("hr_"):
+        prompts: dict[str, list[str]] = {
+            "help": [
+                f"Let's look at {label}. Has there been a situation where you faced a tricky scenario with this? What happened?",
+                f"How would you act in an HR scenario specifically involving {label}?",
+                f"Can you provide a simple example of how you handle {label} in your daily work?",
+            ],
+            "probe": [
+                f"Let's dive a bit deeper into that {label} scenario. What were the hidden stakes or ethical considerations?",
+                f"In that situation involving {label}, how did you balance team morale against strict policies?",
+                f"Tell me more about the outcome of that {label} approach. Were there any consequences?",
+            ],
+            "challenge": [
+                f"Suppose your approach to {label} led to a major conflict with a manager. How do you resolve it?",
+                f"If you were pushed to compromise your {label} by a tight deadline, what exact steps would you take?",
+                f"Defend your handling of {label} in a scenario where another team member actively resists your viewpoint.",
+            ],
+            "assess": [
+                f"How do you generally approach situations involving {label}? Can you share your philosophy?",
+                f"What are the most common challenges you see regarding {label} in a typical workplace?",
+                f"Describe your framework for dealing with {label}.",
+            ],
+        }
+        return prompts.get(action, [f"Here is a scenario about {label}. How would you handle it?"])
+
     if is_behavioral_skill(skill):
         prompts: dict[str, list[str]] = {
             "help": [
@@ -85,6 +114,11 @@ def _fallback_prompt_variants(action: str, skill: str) -> list[str]:
                 f"Imagine a harder version of that {label} situation with time pressure and competing stakeholders. How would you handle it?",
                 f"Defend your approach to {label} when the situation becomes more ambiguous or high-stakes.",
                 f"If your first attempt at {label} failed, what would you change next and why?",
+            ],
+            "assess": [
+                f"What experiences do you have dealing with {label} in past projects?",
+                f"Can you give an overview of your approach to {label}?",
+                f"Why is {label} an important trait for a modern engineer?"
             ],
         }
         return prompts.get(action, [f"Tell me about a real example that shows {label}."])
@@ -105,8 +139,13 @@ def _fallback_prompt_variants(action: str, skill: str) -> list[str]:
             f"Assume one part of your {label} design fails. How would you adapt, step by step?",
             f"Defend your {label} approach against reliability and trade-off constraints, step by step.",
         ],
+        "assess": [
+            f"What are the core differences between standard approaches and your approach to {label}?",
+            f"Define {label} and explain when you would use it.",
+            f"What is the primary benefit of using {label} in modern architecture?",
+        ],
     }
-    return prompts.get(action, [f"Let's continue with {label}. Explain your approach step by step."])
+    return prompts.get(action, [f"Let's check your knowledge on {label}. Explain your understanding."])
 
 
 def _fallback_question(
@@ -157,6 +196,19 @@ async def generate_question(
     target_skill = str(plan_payload.get("target_skill") or parsed_context.plan.target_skill)
     difficulty = str(plan_payload.get("difficulty") or parsed_context.plan.difficulty)
     default_type = _default_question_type(mode, target_skill)
+    
+    hr_instruction = ""
+    if target_skill.startswith("hr_"):
+        hr_instruction = "\nMake this question a tricky HR scenario-based situation. Focus on ethical, behavioral, or interpersonal conflicts, and make the candidate think critically about trade-offs."
+    
+    action_instruction = ""
+    if mode == "assess":
+        action_instruction = "\nStart with a conceptual or direct question to assess foundational knowledge (e.g., definitions, core differences, basic use cases). Do NOT use a complex scenario for this."
+    elif mode == "challenge":
+        action_instruction = "\nPropose a complex, real-world scenario or a difficult edge case that tests depth, tradeoffs, and scaling."
+    elif mode == "help":
+        action_instruction = "\nProvide a simpler, grounded question or a specific concrete example to help the candidate demonstrate basic understanding."
+
     prompt = f"""
 Generate one interview question in JSON.
 mode: {mode}
@@ -165,7 +217,7 @@ difficulty: {difficulty}
 last_question: {parsed_context.last_question}
 last_answer: {parsed_context.last_answer}
 minimal_state: {parsed_context.minimal_state}
-previous_question: {parsed_context.previous_question}
+previous_question: {parsed_context.previous_question}{hr_instruction}{action_instruction}
 
 Keep it concise, natural, and not a duplicate. Reuse prior question pattern with small variation when useful.
 
@@ -174,7 +226,7 @@ Return JSON only:
   "question": "string",
   "skill": "string",
   "difficulty": "easy | medium | hard",
-  "type": "conceptual | system_design | behavioral"
+  "type": "conceptual | system_design | behavioral | hr_scenario"
 }}
 Set "type" to "{default_type}" unless it clearly does not fit.
 """
@@ -188,7 +240,7 @@ Set "type" to "{default_type}" unless it clearly does not fit.
                 "temperature": 0.2,
                 "top_p": 0.9,
                 "num_predict": 96,
-                "timeout_seconds": 12,
+                "timeout_seconds": 300,
             },
         )
         payload = extract_json(output)

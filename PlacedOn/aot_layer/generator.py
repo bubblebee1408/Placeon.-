@@ -5,9 +5,10 @@ from backend.llm.generator import generate_question
 class QuestionGenerator:
     async def generate(self, request: QuestionRequest) -> QuestionOutput:
         action_by_mode = {
-            "new": "probe",
-            "probe": "challenge",
+            "new": "assess",
+            "probe": "probe",
             "retry": "help",
+            "challenge": "challenge"
         }
         action = action_by_mode.get(request.mode, "probe")
         tone = "supportive" if request.mode == "retry" else "neutral"
@@ -29,9 +30,9 @@ class QuestionGenerator:
                     "education": "",
                 },
                 "job": {
-                    "role": "Backend Engineer",
+                    "role": "Frontend Intern",
                     "company": "PlacedOn",
-                    "level": "mid",
+                    "level": "intern",
                     "required_skills": [request.target_skill],
                     "preferred_skills": [],
                 },

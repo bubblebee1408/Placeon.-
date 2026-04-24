@@ -20,7 +20,7 @@ class JobProfile(BaseModel):
 
 
 class PlanOutput(BaseModel):
-    action: Literal["help", "probe", "challenge"]
+    action: Literal["help", "probe", "challenge", "assess", "concept"]
     target_skill: str = Field(min_length=1)
     reason: str = Field(min_length=1)
     difficulty: Literal["easy", "medium", "hard"]
@@ -39,4 +39,4 @@ class QuestionOutput(BaseModel):
     question: str = Field(min_length=1)
     skill: str = Field(min_length=1)
     difficulty: Literal["easy", "medium", "hard"]
-    type: Literal["conceptual", "system_design", "behavioral"]
+    type: Literal["conceptual", "system_design", "behavioral", "hr_scenario"]

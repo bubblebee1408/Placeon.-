@@ -3,7 +3,7 @@ from typing import Dict, List, Literal
 from pydantic import BaseModel, Field
 
 Direction = Literal["correct", "partial", "wrong"]
-Mode = Literal["new", "probe", "retry"]
+Mode = Literal["new", "probe", "retry", "challenge"]
 Difficulty = Literal["easy", "medium", "hard"]
 
 
@@ -43,7 +43,7 @@ class JudgeResult(BaseModel):
 
 
 class EndDecision(BaseModel):
-    action: Literal["probe", "retry", "move"]
+    action: Literal["probe", "retry", "move", "challenge"]
     next_mode: Mode
     next_skill: str
 

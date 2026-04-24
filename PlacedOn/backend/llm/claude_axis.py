@@ -7,7 +7,7 @@ from backend.llm.ollama_client import call_ollama
 from backend.utils.json_utils import extract_json
 from pydantic import BaseModel, Field
 
-_AXIS_MODEL = "llama3:8b-instruct-q4_0"  # Defaulting to local model for simulation speed
+_AXIS_MODEL = "llama3"  # Using llama3 for all LLM components
 
 class AxisScore(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
@@ -83,7 +83,7 @@ Return JSON only in this format:
                     "temperature": 0.1,
                     "top_p": 0.9,
                     "num_predict": 512,
-                    "timeout_seconds": 20,
+                    "timeout_seconds": 300,
                 },
             )
             payload = extract_json(output)

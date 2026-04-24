@@ -34,10 +34,13 @@ def should_end_interview(state: InterviewState) -> bool:
     if state.turn_count < MIN_TURNS:
         return False
 
+    hr_skills_asked = any(s.startswith("hr_") for s in state.skill_scores.keys())
+
     if (
         state.turn_count >= MIN_TURNS
         and state.skill_coverage >= 0.7
         and state.avg_confidence >= 0.7
+        and hr_skills_asked
     ):
         return True
 

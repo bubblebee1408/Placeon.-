@@ -6,7 +6,7 @@ from backend.llm.ollama_client import call_ollama
 from backend.schemas.judge_schema import JudgeInput, JudgeOutput
 from backend.utils.json_utils import extract_json
 
-_JUDGE_MODEL = "gemma3:1b"
+_JUDGE_MODEL = "llama3"
 
 _WEAK_CONFIDENCE_MAX = 0.6
 _MEDIUM_CONFIDENCE_MIN = 0.5
@@ -305,7 +305,7 @@ async def evaluate_answer(
                 "temperature": 0.1,
                 "top_p": 0.9,
                 "num_predict": 128,
-                "timeout_seconds": 12,
+                "timeout_seconds": 300,
             },
         )
         payload = extract_json(output)

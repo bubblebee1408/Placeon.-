@@ -11,12 +11,12 @@ from layer5.aggregator import AggregationEngine
 from layer5.models import AxisSignal, CandidateState, InterviewTurn, SkillTurnSignal
 
 # Mock Candidate and Config
-# We will simulate a mid-level backend engineer interview
-SKILLS = ["caching", "concurrency", "api_design", "system_design"]
+# We will simulate a mid-level frontend engineer intern interview
+SKILLS = ["frontend", "ui", "performance", "hr_conflict_resolution", "hr_prioritization"]
 
 class InterviewSimulator:
     def __init__(self):
-        self.orchestrator = AoTOrchestrator(config=AoTConfig(skills=SKILLS, total_turn_limit=8, max_retries_per_skill=1))
+        self.orchestrator = AoTOrchestrator(config=AoTConfig(skills=SKILLS, total_turn_limit=12, max_retries_per_skill=1))
         self.bias_enforcer = BiasEnforcer()
         self.aggregator = AggregationEngine()
         self.axis_evaluator = ClaudeAxisEvaluator()
@@ -53,25 +53,19 @@ class InterviewSimulator:
             except Exception as e:
                 print(f"   [!] Failed bias check execution: {e}")
 
-            # Define behaviors
-            answers = {
-                "caching": "I love using Redis! Usually, I set a TTL mechanism and write-through cache to avoid database hit latency. The biggest tradeoff is memory eviction when caching keys.",
-                "concurrency": "I run processes in parallel.",
-                "api_design": "I usually use REST with standard HTTP verbs and JSON payloads. I also add versioning in the headers to prevent breaking clients.",
-                "system_design": "I just put everything in a single monolith because microservices are complicated."
-            }
-            
-            # Evolve answers based on mode (probe means the AI asked a follow-up)
-            ans = answers.get(skill, "I am not sure how to answer that.")
-            if mode == "probe" and skill == "concurrency":
-                ans = "Oh, you mean handling race conditions? I lock the database row and use message queues like RabbitMQ to decouple the process."
+            # The AI Agent (me) will be the candidate. The script pauses here to let you paste the question to me, and then you can paste my answer back here!
+            print("\n" + "="*50)
+            print("⏳ WAITING FOR CANDIDATE (Paste this question to me in the chat):")
+            print(f"'{question}'")
+            ans = input("📝 Paste the candidate's answer here: ")
+            print("="*50 + "\n")
                 
             print(f"<- Answer:   {ans}")
             return ans
 
         print("\n=== STAGE 2: AoT Orchestrator Trajectory ===")
         # Run orchestrator
-        result = await self.orchestrator.run(start_input=start, answer_provider=mock_answer_provider, max_turns=8)
+        result = await self.orchestrator.run(start_input=start, answer_provider=mock_answer_provider, max_turns=12)
         
         print("\n=== STAGE 3: Extracting Signals & Attention Aggregation ===")
         turns = []

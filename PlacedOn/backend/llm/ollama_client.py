@@ -17,11 +17,15 @@ def call_ollama(prompt: str, model: str = "llama3", options: Optional[Dict[str, 
             "model": model,
             "prompt": prompt,
             "stream": False,
-            "format": "json",
         }
         merged_options: dict[str, Any] = {"num_predict": 128}
         if options:
             merged_options.update(options)
+            
+        format_val = merged_options.pop("format", "json")
+        if format_val:
+            payload["format"] = format_val
+            
         payload["options"] = merged_options
 
         timeout_seconds = float(merged_options.pop("timeout_seconds", 20))
