@@ -3,52 +3,52 @@
   "best_iteration": {
     "iteration": 3,
     "metrics": {
-      "avg_score_error": 0.0694,
-      "avg_confidence_error": 0.0794,
+      "avg_score_error": 0.0711,
+      "avg_confidence_error": 0.0767,
       "avg_clarity_error": 0.2352,
       "direction_accuracy": 0.9
     },
     "failure_count": 5,
-    "timestamp_utc": "2026-04-24T06:42:13.589876+00:00"
+    "timestamp_utc": "2026-04-24T07:12:18.200818+00:00"
   },
   "iterations": [
     {
       "iteration": 1,
       "metrics": {
-        "avg_score_error": 0.1309,
-        "avg_confidence_error": 0.0835,
+        "avg_score_error": 0.1243,
+        "avg_confidence_error": 0.0903,
         "avg_clarity_error": 0.2352,
-        "direction_accuracy": 0.9
+        "direction_accuracy": 0.86
       },
-      "failure_count": 10,
-      "timestamp_utc": "2026-04-24T06:42:13.588382+00:00"
+      "failure_count": 8,
+      "timestamp_utc": "2026-04-24T07:12:18.199044+00:00"
     },
     {
       "iteration": 2,
       "metrics": {
-        "avg_score_error": 0.1155,
-        "avg_confidence_error": 0.0693,
+        "avg_score_error": 0.1222,
+        "avg_confidence_error": 0.0633,
         "avg_clarity_error": 0.2352,
         "direction_accuracy": 0.88
       },
       "failure_count": 6,
-      "timestamp_utc": "2026-04-24T06:42:13.589226+00:00"
+      "timestamp_utc": "2026-04-24T07:12:18.200200+00:00"
     },
     {
       "iteration": 3,
       "metrics": {
-        "avg_score_error": 0.0694,
-        "avg_confidence_error": 0.0794,
+        "avg_score_error": 0.0711,
+        "avg_confidence_error": 0.0767,
         "avg_clarity_error": 0.2352,
         "direction_accuracy": 0.9
       },
       "failure_count": 5,
-      "timestamp_utc": "2026-04-24T06:42:13.589876+00:00"
+      "timestamp_utc": "2026-04-24T07:12:18.200818+00:00"
     }
   ],
   "summary": {
-    "final_avg_score_error": 0.0694,
-    "final_avg_confidence_error": 0.0794,
+    "final_avg_score_error": 0.0711,
+    "final_avg_confidence_error": 0.0767,
     "final_direction_accuracy": 0.9
   }
 }

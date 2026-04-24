@@ -2,8 +2,8 @@
   {
     "input_text": "I would profile the code, add indexing on DB queries, implement a read-through cache, and potentially paginate the response.",
     "predicted": {
-      "score": 0.5125085036461361,
-      "confidence": 0.829734189416656,
+      "score": 0.5164950688315507,
+      "confidence": 0.7157991850139814,
       "direction": "correct",
       "decision": "pass",
       "evidence": [],
@@ -19,8 +19,8 @@
       "clarity": 0.5549999999999999
     },
     "errors": {
-      "score_error": 0.1375,
-      "confidence_error": 0.2297,
+      "score_error": 0.1335,
+      "confidence_error": 0.1158,
       "clarity_error": 0.055,
       "direction_correct": false,
       "predicted_direction": "bad",
@@ -30,8 +30,8 @@
   {
     "input_text": "I would profile the code, add indexing on DB queries, implement a read-through cache, and potentially paginate the response.",
     "predicted": {
-      "score": 0.5345025324087433,
-      "confidence": 0.8342507400021034,
+      "score": 0.5396659189487569,
+      "confidence": 0.680439049863893,
       "direction": "correct",
       "decision": "pass",
       "evidence": [],
@@ -47,8 +47,8 @@
       "clarity": 0.5549999999999999
     },
     "errors": {
-      "score_error": 0.1155,
-      "confidence_error": 0.2343,
+      "score_error": 0.1103,
+      "confidence_error": 0.0804,
       "clarity_error": 0.055,
       "direction_correct": false,
       "predicted_direction": "bad",
@@ -58,8 +58,8 @@
   {
     "input_text": "I would profile the code, add indexing on DB queries, implement a read-through cache, and potentially paginate the response.",
     "predicted": {
-      "score": 0.5497671913509484,
-      "confidence": 0.7243193375602615,
+      "score": 0.5573448865324433,
+      "confidence": 0.7361917441073618,
       "direction": "correct",
       "decision": "pass",
       "evidence": [],
@@ -75,8 +75,8 @@
       "clarity": 0.5549999999999999
     },
     "errors": {
-      "score_error": 0.1002,
-      "confidence_error": 0.1243,
+      "score_error": 0.0927,
+      "confidence_error": 0.1362,
       "clarity_error": 0.055,
       "direction_correct": false,
       "predicted_direction": "bad",
@@ -86,8 +86,8 @@
   {
     "input_text": "I would profile the code, add indexing on DB queries, implement a read-through cache, and potentially paginate the response.",
     "predicted": {
-      "score": 0.551403653679186,
-      "confidence": 0.6953407437895816,
+      "score": 0.5858785619498088,
+      "confidence": 0.6853860535668249,
       "direction": "correct",
       "decision": "pass",
       "evidence": [],
@@ -103,8 +103,8 @@
       "clarity": 0.5549999999999999
     },
     "errors": {
-      "score_error": 0.0986,
-      "confidence_error": 0.0953,
+      "score_error": 0.0641,
+      "confidence_error": 0.0854,
       "clarity_error": 0.055,
       "direction_correct": false,
       "predicted_direction": "bad",
@@ -114,8 +114,8 @@
   {
     "input_text": "I would profile the code, add indexing on DB queries, implement a read-through cache, and potentially paginate the response.",
     "predicted": {
-      "score": 0.586673477738086,
-      "confidence": 0.7837764375074436,
+      "score": 0.587856394507517,
+      "confidence": 0.7711333770276293,
       "direction": "correct",
       "decision": "pass",
       "evidence": [],
@@ -131,8 +131,8 @@
       "clarity": 0.5549999999999999
     },
     "errors": {
-      "score_error": 0.0633,
-      "confidence_error": 0.1838,
+      "score_error": 0.0621,
+      "confidence_error": 0.1711,
       "clarity_error": 0.055,
       "direction_correct": false,
       "predicted_direction": "bad",
