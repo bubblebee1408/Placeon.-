@@ -31,6 +31,9 @@ SKILL_LABELS = {
     "frontend": "frontend engineering",
     "ui": "ui engineering",
     "performance": "performance engineering",
+    "gen_ai": "generative ai and foundation models",
+    "prompt_engineering": "prompt engineering and context optimization",
+    "rag_architecture": "retrieval augmented generation architecture",
     "db_design": "database design",
     "caching": "caching",
     "system_design": "system design",
@@ -53,6 +56,9 @@ TECHNICAL_SKILL_KEYWORDS = {
     "frontend": ["react", "frontend", "state", "render", "component", "virtual dom", "hooks"],
     "ui": ["accessibility", "design system", "usability", "interaction", "layout", "visual hierarchy"],
     "performance": ["profiling", "bundle", "latency", "render", "virtualization", "memory leak", "heap"],
+    "gen_ai": ["llm", "foundation model", "tokens", "transformer", "attention", "fine-tuning", "hallucination"],
+    "prompt_engineering": ["prompt", "few-shot", "chain-of-thought", "context window", "system prompt", "jailbreak"],
+    "rag_architecture": ["rag", "vector db", "embeddings", "retrieval", "chunking", "cosine similarity", "hybrid search"],
     "hr_conflict_resolution": ["disagreement", "dispute", "compromise", "mediated", "deescalated", "alignment"],
     "hr_ethics_scenario": ["policy", "integrity", "dilemma", "whistleblower", "compliance", "honest"],
     "hr_prioritization": ["trade-off", "deadline", "urgent", "resources", "reprioritized", "pushback"],
@@ -62,6 +68,9 @@ TECHNICAL_SKILL_KEYWORDS = {
 SKILL_ASPECTS = {
     "caching": ["latency reduction", "data consistency", "invalidation strategy"],
     "system_design": ["scalability", "fault tolerance", "load balancing"],
+    "gen_ai": ["model selection", "cost optimization", "evaluation metrics"],
+    "prompt_engineering": ["accuracy", "robustness", "instruction following"],
+    "rag_architecture": ["retrieval accuracy", "latency", "chunking strategy"],
     "db_design": ["data integrity", "query optimization", "schema flexibility"],
     "block_4_grit": ["persistence", "follow-through", "long-term focus"],
     "block_8_ownership": ["proactivity", "accountability", "outcome-driven"],
@@ -161,6 +170,9 @@ SKILL_PROMPTS = {
     "frontend": "frontend state management accessibility async flows and rendering",
     "ui": "interaction design accessibility visual hierarchy and usability decisions",
     "performance": "profiling bottlenecks bundle size render cost and optimization",
+    "gen_ai": "generative ai llms foundation models transformers attention fine tuning and hallucinations",
+    "prompt_engineering": "prompt engineering few shot chain of thought context window parsing and guardrails",
+    "rag_architecture": "retrieval augmented generation embeddings vector databases chunking and similarity search",
 }
 
 JD_SKILL_MAP = {

@@ -21,13 +21,37 @@ class Controller:
         # True Markov Memoryless condition: skip history counters, check if uncertainty has converged
         if state.sigma2.get(skill, 1.0) <= self.config.target_sigma2:
             next_skill = self._next_skill_balanced(state=state, avoid_skill=skill)
+            if not next_skill:
+                return EndDecision(action="finish", next_mode="new", next_skill=skill)
             return EndDecision(action="move", next_mode="new", next_skill=next_skill)
         
         # Fallback to prevent infinite loops if model keeps generating bad questions
         turns_for_skill = state.turns_per_skill.get(skill, 0)
         if turns_for_skill >= self.config.max_turns_per_skill:
             next_skill = self._next_skill_balanced(state=state, avoid_skill=skill)
+            if not next_skill:
+                return EndDecision(action="finish", next_mode="new", next_skill=skill)
             return EndDecision(action="move", next_mode="new", next_skill=next_skill)
+
+        # Escalate to a scenario-based challenge if the candidate shows solid understanding.
+        # We look at the score (>= 0.7) rather than just a strict "correct" label,
+        # because human answers are natural and can be marked "partial" despite being good.
+        if (
+            (judge_result.direction == "correct" or judge_result.score >= 0.7)
+            and state.consecutive_turns.get(skill, 0) < self.config.max_consecutive_per_skill
+        ):
+            # Escalate difficulty/scenario if they got it right but it's not converged yet
+            import random
+            from skill_taxonomy import is_behavioral_skill
+            
+            if is_behavioral_skill(skill):
+                # Behavioral skills → lean toward scenario challenges
+                escalate_to = "challenge" if random.random() > 0.3 else "probe"
+            else:
+                # Technical skills → mix of deeper probes and scenario challenges
+                escalate_to = "challenge" if random.random() > 0.4 else "probe"
+                
+            return EndDecision(action=escalate_to, next_mode=escalate_to, next_skill=skill)
 
         if (
             judge_result.direction == "partial"
@@ -45,16 +69,9 @@ class Controller:
         ):
             return EndDecision(action="retry", next_mode="retry", next_skill=skill)
 
-        if (
-            judge_result.direction == "correct"
-            and state.consecutive_turns.get(skill, 0) < self.config.max_consecutive_per_skill
-        ):
-            # Escalate difficulty/scenario if they got it right but it's not converged yet
-            import random
-            escalate_to = "challenge" if random.random() > 0.4 else "probe"
-            return EndDecision(action=escalate_to, next_mode=escalate_to, next_skill=skill)
-
         next_skill = self._next_skill_balanced(state=state, avoid_skill=skill)
+        if not next_skill:
+            return EndDecision(action="finish", next_mode="new", next_skill=skill)
         return EndDecision(action="move", next_mode="new", next_skill=next_skill)
 
     def _difficulty_from_uncertainty(self, sigma2: float, score: float, overall_avg: float) -> str:
@@ -90,7 +107,7 @@ class Controller:
     def _is_hr_skill(self, skill: str) -> bool:
         return skill.startswith("hr_")
 
-    def _next_skill_balanced(self, state: InterviewState, avoid_skill: Optional[str] = None) -> str:
+    def _next_skill_balanced(self, state: InterviewState, avoid_skill: Optional[str] = None) -> Optional[str]:
         # True Markov: next skill is purely determined by the current state's uncertainty (sigma2)
         eligible_skills = [
             skill for skill in state.skills 
@@ -107,16 +124,8 @@ class Controller:
             eligible_skills = hr_eligible
         
         if not eligible_skills:
-            # All skills converged or only avoid_skill is left. Default to highest uncertainty.
-            eligible_skills = [skill for skill in state.skills if skill != avoid_skill]
-            
-            # Still prefer non-hr if forced
-            non_hr_fallback = [s for s in eligible_skills if not self._is_hr_skill(s)]
-            if non_hr_fallback:
-                eligible_skills = non_hr_fallback
-            
-        if not eligible_skills:
-            return state.current_skill
+            # All skills converged or only avoid_skill is left.
+            return None
 
         # Sort by highest uncertainty
         eligible_skills.sort(key=lambda s: state.sigma2.get(s, 1.0), reverse=True)

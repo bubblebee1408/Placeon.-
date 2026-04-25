@@ -22,6 +22,10 @@ class QuestionRequest(BaseModel):
     target_skill: str
     difficulty: Difficulty
     mode: Mode
+    last_question: str = ""
+    last_answer: str = ""
+    last_score: float = 0.5
+    minimal_state: Dict = Field(default_factory=dict)
 
 
 class QuestionOutput(BaseModel):
@@ -43,7 +47,7 @@ class JudgeResult(BaseModel):
 
 
 class EndDecision(BaseModel):
-    action: Literal["probe", "retry", "move", "challenge"]
+    action: Literal["probe", "retry", "move", "challenge", "finish"]
     next_mode: Mode
     next_skill: str
 

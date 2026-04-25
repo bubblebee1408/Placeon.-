@@ -11,8 +11,8 @@ from layer5.aggregator import AggregationEngine
 from layer5.models import AxisSignal, CandidateState, InterviewTurn, SkillTurnSignal
 
 # Mock Candidate and Config
-# We will simulate a mid-level frontend engineer intern interview
-SKILLS = ["frontend", "ui", "performance", "hr_conflict_resolution", "hr_prioritization"]
+# We will simulate a Gen AI intern interview
+SKILLS = ["gen_ai", "prompt_engineering", "rag_architecture", "block_8_curiosity", "block_10_calibration"]
 
 class InterviewSimulator:
     def __init__(self):
@@ -99,6 +99,8 @@ class InterviewSimulator:
         
         final_aggregate = await self.aggregator.aggregate(turns)
         print("\n=== FINAL RESULTS (Learned Profile) ===")
+        print("🤖 AI Interviewer: 'Thank you for your time today! That concludes both the technical and behavioral portions of our interview. We have gathered all the information we need. Our team will review your profile and be in touch soon!'\n")
+        
         for skill_name, data in final_aggregate.skills.items():
             print(f"- {skill_name.ljust(15)} : Score={data.score:.2f} | Uncertainty={data.uncertainty:.2f}")
 

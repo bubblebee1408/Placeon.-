@@ -30,14 +30,15 @@ class QuestionGenerator:
                     "education": "",
                 },
                 "job": {
-                    "role": "Frontend Intern",
+                    "role": "Intern",
                     "company": "PlacedOn",
                     "level": "intern",
                     "required_skills": [request.target_skill],
                     "preferred_skills": [],
                 },
-                "last_question": "",
-                "last_answer": "",
+                "last_question": request.last_question,
+                "last_answer": request.last_answer,
+                "minimal_state": request.minimal_state,
                 "interview_state": {
                     "phase": "technical",
                     "covered_skills": [request.target_skill],

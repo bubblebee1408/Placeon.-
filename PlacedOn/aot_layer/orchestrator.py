@@ -50,6 +50,9 @@ class AoTOrchestrator:
         state = await self.initialize_state(start_input)
         logs: list[TurnLog] = []
         mode = "new"
+        prev_question = ""
+        prev_answer = ""
+        prev_score = 0.5
 
         while len(logs) < max_turns and state.turn_index < self.config.total_turn_limit:
             turn_mode = mode
@@ -60,6 +63,10 @@ class AoTOrchestrator:
                     target_skill=active_skill,
                     difficulty=state.current_difficulty,
                     mode=turn_mode,
+                    last_question=prev_question,
+                    last_answer=prev_answer,
+                    last_score=prev_score,
+                    minimal_state=state.compress_to_markov_state(),
                 )
             )
 
@@ -132,5 +139,14 @@ class AoTOrchestrator:
                     controller_action=end_decision.action,
                 )
             )
+
+            # Track context for next turn's question generation
+            prev_question = question_out.question
+            prev_answer = answer
+            prev_score = judge_result.score
+
+            if end_decision.action == "finish":
+                print("\n[Orchestrator] All targeted skills have converged. Ending interview naturally.")
+                break
 
         return OrchestrationResult(final_state=state, logs=logs)
