@@ -40,6 +40,10 @@ SKILL_LABELS = {
     "hr_conflict_resolution": "conflict resolution and stakeholder mediation",
     "hr_ethics_scenario": "ethical decision making",
     "hr_prioritization": "prioritization and tight deadlines",
+    "pm_strategy": "product strategy and roadmap planning",
+    "pm_metrics": "product metrics and analytics",
+    "pm_stakeholder": "cross-functional stakeholder management",
+    "pm_prioritization": "feature prioritization and trade-off analysis",
 }
 
 HR_SCENARIO_SKILLS = [
@@ -62,6 +66,10 @@ TECHNICAL_SKILL_KEYWORDS = {
     "hr_conflict_resolution": ["disagreement", "dispute", "compromise", "mediated", "deescalated", "alignment"],
     "hr_ethics_scenario": ["policy", "integrity", "dilemma", "whistleblower", "compliance", "honest"],
     "hr_prioritization": ["trade-off", "deadline", "urgent", "resources", "reprioritized", "pushback"],
+    "pm_strategy": ["roadmap", "vision", "north star", "okr", "market fit", "positioning", "competitive", "go-to-market"],
+    "pm_metrics": ["kpi", "funnel", "conversion", "retention", "churn", "arpu", "dau", "mau", "cohort", "analytics"],
+    "pm_stakeholder": ["cross-functional", "alignment", "buy-in", "engineering", "design", "executive", "communication"],
+    "pm_prioritization": ["rice", "moscow", "iceberg", "impact", "effort", "backlog", "scope", "mvp", "trade-off"],
 }
 
 # SEMA-Match: Multi-Aspect Decomposition
@@ -78,6 +86,10 @@ SKILL_ASPECTS = {
     "hr_conflict_resolution": ["empathy", "mediation", "assertiveness"],
     "hr_ethics_scenario": ["moral courage", "compliance", "fairness"],
     "hr_prioritization": ["time management", "trade-off analysis", "urgency handling"],
+    "pm_strategy": ["vision clarity", "market awareness", "roadmap coherence"],
+    "pm_metrics": ["metric selection", "data interpretation", "goal setting"],
+    "pm_stakeholder": ["communication", "influence", "conflict navigation"],
+    "pm_prioritization": ["framework application", "trade-off reasoning", "scope management"],
 }
 
 BEHAVIORAL_SKILL_KEYWORDS = {
@@ -173,6 +185,10 @@ SKILL_PROMPTS = {
     "gen_ai": "generative ai llms foundation models transformers attention fine tuning and hallucinations",
     "prompt_engineering": "prompt engineering few shot chain of thought context window parsing and guardrails",
     "rag_architecture": "retrieval augmented generation embeddings vector databases chunking and similarity search",
+    "pm_strategy": "product strategy roadmap vision north star okr market fit go to market competitive analysis",
+    "pm_metrics": "product metrics kpi funnel conversion retention churn cohort analytics data driven decisions",
+    "pm_stakeholder": "cross functional stakeholder management alignment buy in communication executive design engineering",
+    "pm_prioritization": "feature prioritization rice moscow impact effort scope mvp backlog trade offs",
 }
 
 JD_SKILL_MAP = {
@@ -212,7 +228,7 @@ JD_SKILL_MAP = {
 ROLE_KEYWORD_TEMPLATES = {
     "backend": ["backend", "db_design", "caching", "system_design"],
     "frontend": ["frontend", "ui", "performance"],
-    "product": ["block_6_social", "block_8_ownership", "block_10_calibration"],
+    "product": ["pm_strategy", "pm_metrics", "pm_stakeholder", "pm_prioritization", "block_6_social", "block_8_ownership", "block_10_calibration"],
     "manager": ["block_6_leadership", "block_6_social", "block_5_resilience"],
     "lead": ["block_6_leadership", "block_8_ownership", "block_10_calibration"],
     "founder": ["block_6_leadership", "block_8_ownership", "block_5_resilience"],

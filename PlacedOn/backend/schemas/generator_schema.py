@@ -33,6 +33,8 @@ class GeneratorInput(BaseModel):
     last_answer: str = ""
     minimal_state: dict = Field(default_factory=dict)
     previous_question: str = ""
+    probe_focus: list[str] = Field(default_factory=list)
+    judge_summary: str = ""
 
 
 class QuestionOutput(BaseModel):

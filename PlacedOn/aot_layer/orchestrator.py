@@ -53,11 +53,19 @@ class AoTOrchestrator:
         prev_question = ""
         prev_answer = ""
         prev_score = 0.5
+        prev_probe_focus: list[str] = []
+        prev_judge_summary = ""
 
         while len(logs) < max_turns and state.turn_index < self.config.total_turn_limit:
             turn_mode = mode
             active_skill = state.current_skill
             state.current_difficulty = self.controller.difficulty_for_skill(state, active_skill)
+
+            # On skill switch (new mode), clear stale judge context from previous skill
+            if turn_mode == "new":
+                prev_probe_focus = []
+                prev_judge_summary = ""
+
             question_out = await self.generator.generate(
                 QuestionRequest(
                     target_skill=active_skill,
@@ -67,6 +75,8 @@ class AoTOrchestrator:
                     last_answer=prev_answer,
                     last_score=prev_score,
                     minimal_state=state.compress_to_markov_state(),
+                    probe_focus=prev_probe_focus,
+                    judge_summary=prev_judge_summary,
                 )
             )
 
@@ -144,6 +154,8 @@ class AoTOrchestrator:
             prev_question = question_out.question
             prev_answer = answer
             prev_score = judge_result.score
+            prev_probe_focus = judge_result.probe_focus
+            prev_judge_summary = judge_result.atomic_summary
 
             if end_decision.action == "finish":
                 print("\n[Orchestrator] All targeted skills have converged. Ending interview naturally.")

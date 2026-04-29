@@ -7,11 +7,17 @@ class QuestionGenerator:
         action_by_mode = {
             "new": "assess",
             "probe": "probe",
-            "retry": "help",
+            "retry": "probe",  # Retries should probe the weak spot, not ask a generic simpler question
             "challenge": "challenge"
         }
         action = action_by_mode.get(request.mode, "probe")
         tone = "supportive" if request.mode == "retry" else "neutral"
+
+        # Detect PM skills to set appropriate role context
+        is_pm_skill = request.target_skill.startswith("pm_")
+        role = "Product Manager" if is_pm_skill else "Intern"
+        level = "mid" if is_pm_skill else "intern"
+        experience = 3 if is_pm_skill else 2
 
         generated = await generate_question(
             plan={
@@ -24,15 +30,15 @@ class QuestionGenerator:
             context={
                 "candidate": {
                     "name": "AoT Candidate",
-                    "experience_years": 2,
+                    "experience_years": experience,
                     "skills": [request.target_skill],
                     "projects": [],
                     "education": "",
                 },
                 "job": {
-                    "role": "Intern",
+                    "role": role,
                     "company": "PlacedOn",
-                    "level": "intern",
+                    "level": level,
                     "required_skills": [request.target_skill],
                     "preferred_skills": [],
                 },
@@ -45,6 +51,8 @@ class QuestionGenerator:
                     "current_focus": request.target_skill,
                 },
                 "previous_context": [{"mode": request.mode}],
+                "probe_focus": request.probe_focus,
+                "judge_summary": request.judge_summary,
             },
         )
         return QuestionOutput(

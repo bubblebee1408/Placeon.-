@@ -26,6 +26,8 @@ class QuestionRequest(BaseModel):
     last_answer: str = ""
     last_score: float = 0.5
     minimal_state: Dict = Field(default_factory=dict)
+    probe_focus: List[str] = Field(default_factory=list)
+    judge_summary: str = ""
 
 
 class QuestionOutput(BaseModel):

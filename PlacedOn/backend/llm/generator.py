@@ -1,4 +1,5 @@
 import asyncio
+import random
 import re
 from typing import Any, Dict, List, Optional, Union
 
@@ -210,41 +211,86 @@ def _fallback_question(
     )
 
 
-def _build_tone_instruction(mode: str, difficulty: str, last_score: float) -> str:
+def _extract_answer_highlights(answer: str) -> list[str]:
+    """Pull out key phrases from the candidate's answer to reference in transitions."""
+    if not answer or len(answer) < 20:
+        return []
+    highlights = []
+    # Look for specific things the candidate mentioned
+    indicator_patterns = [
+        r"(?:I |we |my team )(?:used|built|tried|implemented|set up|created)\s+([^,.!?]{5,40})",
+        r"(?:like|such as|for example)\s+([^,.!?]{5,40})",
+        r"(?:the key|important|main thing)\s+(?:is|was)\s+([^,.!?]{5,40})",
+    ]
+    for pattern in indicator_patterns:
+        matches = re.findall(pattern, answer, re.IGNORECASE)
+        for m in matches:
+            cleaned = m.strip()
+            if 5 <= len(cleaned) <= 50:
+                highlights.append(cleaned)
+    return highlights[:3]
+
+
+def _build_tone_instruction(mode: str, difficulty: str, last_score: float, last_answer: str = "") -> str:
     """Build a tone/personality instruction block for the interviewer."""
     parts = []
     
-    # Encouragement based on how well they did last time
+    # --- TRANSITION BRIDGE (the key to human feel) ---
+    # Reference the candidate's previous answer ~50% of the time to feel conversational
+    # but not every time (that would feel forced)
+    highlights = _extract_answer_highlights(last_answer)
+    should_reference = random.random() < 0.5 and highlights and mode != "new"
+    
     if last_score >= 0.75:
-        parts.append(
-            "The candidate answered the previous question really well. "
-            "Start with a brief, natural encouragement like 'Great answer!' or 'That's solid' or "
-            "'Nice, you clearly know this well' — then transition smoothly into the next question."
-        )
+        if should_reference:
+            ref = random.choice(highlights)
+            parts.append(
+                f"The candidate answered well and mentioned '{ref}'. "
+                f"Start by briefly acknowledging that specific point — e.g., 'That's a really good point about {ref}' or "
+                f"'I like how you brought up {ref}' — then smoothly transition into the next question. "
+                "Keep the acknowledgment to ONE short sentence, not a paragraph."
+            )
+        else:
+            parts.append(
+                "The candidate answered the previous question well. "
+                "Start with a brief, natural encouragement like 'Great answer!', 'That's solid', or "
+                "'Nice, you clearly know this' — then transition smoothly. "
+                "Keep it to ONE sentence max."
+            )
     elif last_score >= 0.5:
-        parts.append(
-            "The candidate had a decent but not perfect previous answer. "
-            "Be warm and neutral — don't praise heavily but stay encouraging, like 'Okay cool, let's keep going' "
-            "or 'That's a fair point' — then transition into the next question."
-        )
+        if should_reference:
+            ref = random.choice(highlights)
+            parts.append(
+                f"The candidate gave a decent answer and mentioned '{ref}'. "
+                f"Briefly acknowledge that point — e.g., 'Okay, I see what you mean about {ref}' — "
+                "then transition naturally. Be warm but don't over-praise."
+            )
+        else:
+            parts.append(
+                "The candidate had a decent but not perfect previous answer. "
+                "Be warm and neutral — 'Okay cool, let's keep going' or 'That's a fair point' — "
+                "then move to the next question naturally."
+            )
     elif last_score > 0.0:
         parts.append(
             "The candidate struggled with the previous question. "
-            "Be supportive and non-judgmental, like 'No worries, let's try a different angle' or "
-            "'That's okay, let me rephrase this' — make them feel safe to keep trying."
+            "Be supportive and non-judgmental — 'No worries, let me come at this from a different angle' or "
+            "'That's okay, let's try something else' — make them feel safe to keep trying."
         )
     
-    # Conversational style instruction
+    # --- CONVERSATIONAL STYLE ---
     parts.append(
         "IMPORTANT TONE RULES:\n"
         "- Sound like a friendly, experienced human interviewer — NOT a quiz bot.\n"
         "- NEVER start with 'What is the definition of...' or 'What is the primary goal of...' unless difficulty is easy.\n"
-        "- Use natural transitions: 'So building on that...', 'That reminds me...', 'Here's something interesting...'\n"
-        "- Mix question styles: scenario-based, 'imagine you're building...', 'walk me through...', 'what would happen if...'\n"
-        "- Keep it conversational — like two engineers chatting, not an exam."
+        "- Your question MUST start with a brief transition/reaction (1 sentence), THEN the actual question.\n"
+        "- Vary your question openers. Do NOT always use 'Can you...' or 'What are some...'. "
+        "Mix it up: 'Tell me about...', 'Walk me through...', 'Imagine...', 'So here's a scenario...', "
+        "'What would happen if...', 'How did you handle...', 'Let's say...'\n"
+        "- Keep it conversational — like two colleagues chatting, not an exam."
     )
     
-    # Difficulty-specific guidance
+    # --- DIFFICULTY GUIDANCE ---
     if difficulty == "easy":
         parts.append(
             "Ask a foundational question. It's okay to ask 'what is X' or 'explain the basics of X' at this level."
@@ -258,6 +304,44 @@ def _build_tone_instruction(mode: str, difficulty: str, last_score: float) -> st
         parts.append(
             "Ask a scenario-based or deep-dive question. Present a real-world situation with constraints. "
             "Example: 'Imagine your team's X is failing under Y load — walk me through your debugging approach.'"
+        )
+    
+    return "\n".join(parts)
+
+
+def _build_probe_instruction(mode: str, probe_focus: list, judge_summary: str, last_answer: str) -> str:
+    """Build a targeted probe instruction when following up on a weak answer."""
+    if mode not in ("probe", "retry") and mode != "help":
+        return ""
+    
+    parts = []
+    
+    if probe_focus:
+        focus_items = ", ".join(probe_focus[:2])
+        parts.append(
+            f"\nPROBE TARGET: The candidate's previous answer was missing or weak on: [{focus_items}].\n"
+            f"Your question MUST specifically target one of these gaps. Do NOT re-ask the same question. "
+            f"Instead, ask about the SPECIFIC missing concept from a different angle.\n"
+            f"Example: If they missed 'cache invalidation', ask 'What happens when stale data gets served to users?' "
+            f"instead of repeating 'Explain caching'.\n"
+        )
+    
+    if judge_summary:
+        parts.append(
+            f"JUDGE ASSESSMENT of previous answer: \"{judge_summary}\"\n"
+            f"Use this to understand what the candidate knows vs. what they're missing, "
+            f"and frame your follow-up to explore the gap.\n"
+        )
+    
+    if last_answer and mode in ("probe", "retry"):
+        # Extract a short snippet to reference
+        snippet = last_answer[:120].strip()
+        if len(last_answer) > 120:
+            snippet += "..."
+        parts.append(
+            f"CANDIDATE'S PREVIOUS ANSWER (summary): \"{snippet}\"\n"
+            f"Build on what they said. Pick up a specific claim or example they gave and push deeper, "
+            f"OR approach the weak area from a scenario/example angle.\n"
         )
     
     return "\n".join(parts)
@@ -307,29 +391,45 @@ async def generate_question(
     elif mode == "help":
         action_instruction = "\nProvide a simpler, grounded question. Be warm and encouraging. Help the candidate demonstrate they know the basics."
     elif mode == "probe":
-        action_instruction = "\nDig deeper into what the candidate just said. Ask a follow-up that builds on their previous answer and explores nuance or trade-offs."
+        action_instruction = "\nDig deeper into what the candidate just said. Ask a DIFFERENT follow-up that explores a specific gap or nuance — do NOT rephrase the same question."
 
-    # Build conversational tone instruction
-    tone_instruction = _build_tone_instruction(mode, difficulty, last_score)
+    # Build conversational tone instruction (with answer-referencing)
+    tone_instruction = _build_tone_instruction(mode, difficulty, last_score, parsed_context.last_answer)
+    
+    # Build targeted probe instruction from judge feedback
+    probe_instruction = _build_probe_instruction(
+        mode,
+        parsed_context.probe_focus,
+        parsed_context.judge_summary,
+        parsed_context.last_answer,
+    )
 
     prompt = f"""
-You are a friendly, experienced technical interviewer. Generate one interview question in JSON.
+You are a friendly, experienced human interviewer having a natural conversation. Generate one interview question in JSON.
+
+--- YOUR PERSONALITY (FOLLOW THIS FIRST) ---
+{tone_instruction}
+
+--- QUESTION CONTEXT ---
 mode: {mode}
 topic: {target_skill}
 difficulty: {difficulty}
 last_question: {parsed_context.last_question}
-last_answer: {parsed_context.last_answer}
-minimal_state: {parsed_context.minimal_state}
 previous_question: {parsed_context.previous_question}
+{hr_instruction}{action_instruction}
+{probe_instruction}
 
-{tone_instruction}{hr_instruction}{action_instruction}
-
-CRITICAL: Do NOT ask "What is the primary goal of..." or "What is the difference between..." style questions unless difficulty is easy.
-For medium/hard: use scenario-based, applied, or deep-dive questions.
+--- CRITICAL RULES ---
+1. Your "question" field MUST begin with a short transition/reaction sentence (5-15 words), THEN the actual question.
+   Good: "That's a solid point about retention. Now, imagine you're launching a new feature..."
+   Bad: "Can you explain the basics of product metrics?"
+2. Do NOT ask "What is the primary goal of..." or "What is the difference between..." unless difficulty is easy.
+3. For probe/retry: you MUST ask a DIFFERENT question than last_question. Target the specific gap, don't rephrase.
+4. Vary your question style. Use scenario-based, walk-me-through, imagine-you're, what-would-happen-if formats.
 
 Return JSON only:
 {{
-  "question": "string",
+  "question": "string (MUST start with a brief transition, then the question)",
   "skill": "string",
   "difficulty": "easy | medium | hard",
   "type": "conceptual | system_design | behavioral | hr_scenario"
@@ -337,15 +437,18 @@ Return JSON only:
 Set "type" to "{default_type}" unless it clearly does not fit.
 """
     
+    # Higher temperature on probes/retries for more variety, lower on new assessments
+    temperature = 0.45 if mode in ("probe", "help") else 0.25
+    
     try:
         output = await asyncio.to_thread(
             call_ollama,
             prompt,
             _GENERATOR_MODEL,
             {
-                "temperature": 0.2,
+                "temperature": temperature,
                 "top_p": 0.9,
-                "num_predict": 96,
+                "num_predict": 128,  # More tokens to allow transition + question
                 "timeout_seconds": 300,
             },
         )
